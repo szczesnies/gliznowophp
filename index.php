@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-10">
+  <link rel="stylesheet" href="/style.css?v=20260515-11">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -69,7 +69,7 @@ header('Pragma: no-cache');
           <div class="row">
             <input id="name" class="input" placeholder="Nazwa">
             <input id="index_number" class="input" placeholder="Numer indeksu">
-            <div class="row" style="grid-template-columns:repeat(3,1fr)">
+            <div class="row price-row">
               <input id="purchase_price" class="input" placeholder="Cena zakupu">
               <input id="vat_price" class="input" placeholder="VAT">
               <input id="gross_price" class="input" placeholder="Cena">
@@ -386,7 +386,7 @@ header('Pragma: no-cache');
           </div>
           <div class="product-meta">${m.status === 'sold' ? 'ARCHIWUM' : 'MAGAZYN'} / ${imgs.length} zdjęć / ID ${m.id}</div>
         </div>
-        <div class="product-grid">
+        <div class="product-grid product-grid-view">
           <section class="product-gallery">
             <div class="product-main-photo">
               ${main ? `<img id="mainPhoto" src="${main}" onclick="openLightbox(${id}, 0)" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div class="product-no-photo">Brak zdjęcia</div>'}
@@ -394,7 +394,7 @@ header('Pragma: no-cache');
             </div>
             ${imgs.length ? `<div class="product-thumbs">${imgs.map((img, index) => `<img class="${index === 0 ? 'active' : ''}" src="${img}" onclick="selectProductPhoto(this, '${img}', ${id}, ${index}, ${imgs.length})" alt="Zdjęcie ${index + 1}">`).join('')}</div>` : ''}
           </section>
-          <section class="product-panel">
+          <section class="product-panel product-summary-panel">
             <div class="product-head">
               <div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><span class="status-pill ${m.status === 'sold' ? 'archive' : ''}">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span></div>
               <h1 class="product-title">${escapeHtml(m.name || 'Bez nazwy')}</h1>
@@ -402,11 +402,13 @@ header('Pragma: no-cache');
             <div class="product-section">
               <div class="product-prices"><div class="product-price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="product-price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="product-price main"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
             </div>
-            <div class="product-section"><h2 class="section-title">Opis</h2><p class="product-copy">${escapeHtml(m.description || 'Brak opisu')}</p></div>
-            <div class="product-section"><h2 class="section-title">Notatka</h2><p class="product-copy">${escapeHtml(m.note || 'Brak notatki')}</p></div>
             <div class="product-section"><div class="product-actions"><button class="btn btn-dark" onclick="toggleHistory(${id})">Historia zmian</button><div id="historyList" class="history-list hidden"></div>${m.status === 'sold' ? `<button class="btn btn-green" onclick="setStatus(${m.id}, 'available'); closeModal()">PRZYWRÓĆ DO MAGAZYNU</button>` : `<button class="btn btn-main" onclick="setStatus(${m.id}, 'sold'); closeModal()">PRZENIEŚ DO ARCHIWUM</button>`}</div></div>
           </section>
         </div>
+        <section class="product-text-panel">
+          <div class="product-section"><h2 class="section-title">Opis</h2><p class="product-copy">${escapeHtml(m.description || 'Brak opisu')}</p></div>
+          <div class="product-section"><h2 class="section-title">Notatka</h2><p class="product-copy">${escapeHtml(m.note || 'Brak notatki')}</p></div>
+        </section>
       </div></div>`
       $('modal').classList.remove('hidden')
     }
@@ -466,7 +468,7 @@ header('Pragma: no-cache');
           <section class="product-gallery"><div class="product-main-photo">${slots.find(Boolean) ? `<img src="${slots.find(Boolean)}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div class="product-no-photo">Brak zdjęcia</div>'}</div><div class="product-thumbs">${slots.map((img, index) => img ? `<img src="${img}" alt="Zdjęcie ${index + 1}">` : '<div class="slot-empty">Pusty slot</div>').join('')}</div></section>
           <section class="product-panel"><div class="product-head"><h1 class="product-title">Edycja maszyny</h1></div><div class="product-section"><div class="product-edit-grid">
             <input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks">
-            <div class="row" style="grid-template-columns:repeat(3,1fr)"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
+            <div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
             <textarea id="edit_description" class="textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea><textarea id="edit_note" class="textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea>
           </div></div><div class="product-section"><h2 class="section-title">Podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}<label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*"></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
         </div>
