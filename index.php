@@ -13,9 +13,9 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-3">
+  <link rel="stylesheet" href="/style.css?v=20260515-4">
 </head>
-<body style="background:#0f0f0f;color:#f4f4f5;margin:0">
+<body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
     <div class="login-card">
       <img src="/icon-192.png" alt="Maszyny Gliznowo">
@@ -236,7 +236,7 @@ header('Pragma: no-cache');
     }
 
     function renderTable(rows) {
-      $('tbody').innerHTML = rows.map((m) => `<tr>
+      $('tbody').innerHTML = rows.map((m) => `<tr class="clickable-row" onclick="openDetails(${m.id})">
         <td><div class="namecell">${m.image1 ? `<img class="thumb" src="${m.image1}" alt="">` : '<div class="thumb"></div>'}<strong>${escapeHtml(m.name || 'Bez nazwy')}</strong></div></td>
         <td><span class="badge">#${escapeHtml(m.index_number || 'brak')}</span></td>
         <td>${escapeHtml(price(m.purchase_price))}</td><td>${escapeHtml(price(m.vat_price))}</td><td class="price-main">${escapeHtml(price(m.gross_price))}</td>
@@ -246,7 +246,7 @@ header('Pragma: no-cache');
     }
 
     function renderCards(rows) {
-      $('cards').innerHTML = rows.map((m) => `<article class="card">
+      $('cards').innerHTML = rows.map((m) => `<article class="card clickable-card" onclick="openDetails(${m.id})">
         ${m.image1 ? `<img class="card-img" src="${m.image1}" alt="${escapeHtml(m.name)}">` : '<div class="card-img"></div>'}
         <div class="card-body"><span class="badge">#${escapeHtml(m.index_number || 'brak')}</span><h3>${escapeHtml(m.name || 'Bez nazwy')}</h3>
         <div class="prices"><div class="price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="price highlight"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
@@ -255,11 +255,12 @@ header('Pragma: no-cache');
     }
 
     function actions(m) {
-      return `<button class="btn btn-dark btn-small" onclick="openDetails(${m.id})">PODGLĄD</button>
-        <button class="btn btn-dark btn-small" onclick="openEdit(${m.id})">EDYTUJ</button>
+      return `<button class="btn btn-dark btn-small" onclick="event.stopPropagation(); openDetails(${m.id})">PODGLĄD</button>
+        <button class="btn btn-dark btn-small" onclick="event.stopPropagation(); openEdit(${m.id})">EDYTUJ</button>
         ${state.view === 'available'
-          ? `<button class="btn btn-main btn-small" onclick="setStatus(${m.id}, 'sold')">ARCHIWIZUJ</button>`
-          : `<button class="btn btn-green btn-small" onclick="setStatus(${m.id}, 'available')">PRZYWRÓĆ</button><button class="btn btn-red btn-small" onclick="deleteMachine(${m.id})">USUŃ</button>`}`
+          ? `<button class="btn btn-main btn-small" onclick="event.stopPropagation(); setStatus(${m.id}, 'sold')">ARCHIWIZUJ</button>`
+          : `<button class="btn btn-green btn-small" onclick="event.stopPropagation(); setStatus(${m.id}, 'available')">PRZYWRÓĆ</button><button class="btn btn-red btn-small" onclick="event.stopPropagation(); deleteMachine(${m.id})">USUŃ</button>`}
+      `
     }
 
     async function createMachine() {
