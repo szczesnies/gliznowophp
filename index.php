@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-4">
+  <link rel="stylesheet" href="/style.css?v=20260515-5">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -101,7 +101,7 @@ header('Pragma: no-cache');
       <button id="saveNew" class="btn btn-green" style="width:100%;margin-top:10px">ZAPISZ MASZYNĘ</button>
     </section>
 
-    <div id="tableBox" class="tablebox"><div class="scroll"><table><thead><tr><th>Maszyna</th><th>Indeks</th><th>Cena zakupu</th><th>VAT</th><th>Cena</th><th>Notatka</th><th style="text-align:right">Akcje</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+    <div id="tableBox" class="tablebox"><div class="scroll"><table><thead><tr><th><button class="th-button" onclick="setSort('name')">Maszyna <span id="sortName"></span></button></th><th><button class="th-button" onclick="setSort('index')">Indeks <span id="sortIndex"></span></button></th><th>Cena zakupu</th><th>VAT</th><th><button class="th-button" onclick="setSort('price')">Cena <span id="sortPrice"></span></button></th><th>Notatka</th><th style="text-align:right">Akcje</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
     <div id="cards" class="grid hidden"></div>
     <div id="empty" class="empty hidden"><h2>Brak maszyn</h2><p class="muted">Zmień filtry albo dodaj nową maszynę.</p></div>
 
@@ -118,7 +118,7 @@ header('Pragma: no-cache');
   <div id="loading" class="loading hidden"><div class="loading-card">Pracuję...</div></div>
 
   <script>
-    const state = { machines: [], view: 'available', mode: 'table', editingId: null, lightboxImages: [], lightboxIndex: 0 }
+    const state = { machines: [], view: 'available', mode: 'table', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
     const text = (v) => String(v ?? '')
@@ -214,6 +214,61 @@ header('Pragma: no-cache');
       return rows
     }
 
+    function setSort(type) {
+      if (type === 'name') $('sortMode').value = $('sortMode').value === 'name' ? 'newest' : 'name'
+      if (type === 'index') $('sortMode').value = $('sortMode').value === 'index' ? 'newest' : 'index'
+      if (type === 'price') $('sortMode').value = $('sortMode').value === 'price-desc' ? 'price-asc' : 'price-desc'
+      render()
+    }
+
+    function updateSortMarkers() {
+      const mode = $('sortMode').value
+      if ($('sortName')) $('sortName').textContent = mode === 'name' ? '↑' : ''
+      if ($('sortIndex')) $('sortIndex').textContent = mode === 'index' ? '↑' : ''
+      if ($('sortPrice')) $('sortPrice').textContent = mode === 'price-desc' ? '↓' : mode === 'price-asc' ? '↑' : ''
+    }
+
+    function startQuickEdit(machine) {
+      state.mode = 'table'
+      state.editingId = Number(machine.id)
+      state.edit = {
+        name: text(machine.name),
+        index_number: text(machine.index_number),
+        purchase_price: text(machine.purchase_price),
+        vat_price: text(machine.vat_price),
+        gross_price: text(machine.gross_price),
+        note: text(machine.note),
+      }
+      render()
+    }
+
+    function setEditField(field, value) {
+      state.edit[field] = value
+    }
+
+    function cancelQuickEdit() {
+      state.editingId = null
+      state.edit = {}
+      render()
+    }
+
+    async function saveQuickEdit(id) {
+      const m = state.machines.find((x) => Number(x.id) === Number(id))
+      if (!m) return
+      setLoading(true, 'Zapisuję zmiany...')
+      const form = formFromMachine(m)
+      for (const key of ['name','index_number','purchase_price','vat_price','gross_price','note']) form.set(key, state.edit[key] || '')
+      form.set('history_action', 'Szybka edycja')
+      form.set('history_details', 'Zaktualizowano dane maszyny w tabeli.')
+      const res = await api('update', { method: 'POST', body: form })
+      if (!res.ok) { setLoading(false); return toast('Nie udało się zapisać szybkiej edycji.', 'error') }
+      state.editingId = null
+      state.edit = {}
+      toast('Zapisano zmiany.')
+      await loadMachines()
+      setLoading(false)
+    }
+
     function render() {
       $('headline').textContent = state.view === 'available' ? 'Maszyny w magazynie' : 'Archiwum'
       $('activeTab').classList.toggle('active', state.view === 'available')
@@ -224,6 +279,7 @@ header('Pragma: no-cache');
       $('cards').classList.toggle('hidden', state.mode !== 'cards')
       $('tableMode').classList.toggle('btn-main', state.mode === 'table')
       $('cardMode').classList.toggle('btn-main', state.mode === 'cards')
+      updateSortMarkers()
       const rows = filtered()
       $('count').textContent = `Ilość: ${rows.length}`
       $('statVisible').textContent = rows.length
@@ -236,13 +292,27 @@ header('Pragma: no-cache');
     }
 
     function renderTable(rows) {
-      $('tbody').innerHTML = rows.map((m) => `<tr class="clickable-row" onclick="openDetails(${m.id})">
-        <td><div class="namecell">${m.image1 ? `<img class="thumb" src="${m.image1}" alt="">` : '<div class="thumb"></div>'}<strong>${escapeHtml(m.name || 'Bez nazwy')}</strong></div></td>
-        <td><span class="badge">#${escapeHtml(m.index_number || 'brak')}</span></td>
-        <td>${escapeHtml(price(m.purchase_price))}</td><td>${escapeHtml(price(m.vat_price))}</td><td class="price-main">${escapeHtml(price(m.gross_price))}</td>
-        <td><span class="note">${escapeHtml(m.note || 'Brak notatki')}</span></td>
-        <td style="text-align:right">${actions(m)}</td>
-      </tr>`).join('')
+      $('tbody').innerHTML = rows.map((m) => {
+        const editing = state.editingId === Number(m.id)
+        if (editing) {
+          return `<tr class="editing-row">
+            <td><div class="namecell">${m.image1 ? `<img class="thumb" src="${m.image1}" alt="">` : '<div class="thumb"></div>'}<input class="input quick-input" value="${escapeAttr(state.edit.name)}" onclick="event.stopPropagation()" oninput="setEditField('name', this.value)" placeholder="Nazwa"></div></td>
+            <td><input class="input quick-input" value="${escapeAttr(state.edit.index_number)}" onclick="event.stopPropagation()" oninput="setEditField('index_number', this.value)" placeholder="Indeks"></td>
+            <td><input class="input quick-input" value="${escapeAttr(state.edit.purchase_price)}" onclick="event.stopPropagation()" oninput="setEditField('purchase_price', this.value)" placeholder="Cena zakupu"></td>
+            <td><input class="input quick-input" value="${escapeAttr(state.edit.vat_price)}" onclick="event.stopPropagation()" oninput="setEditField('vat_price', this.value)" placeholder="VAT"></td>
+            <td><input class="input quick-input" value="${escapeAttr(state.edit.gross_price)}" onclick="event.stopPropagation()" oninput="setEditField('gross_price', this.value)" placeholder="Cena"></td>
+            <td><textarea class="input quick-note" onclick="event.stopPropagation()" oninput="setEditField('note', this.value)" placeholder="Notatka">${escapeHtml(state.edit.note)}</textarea></td>
+            <td><div class="row-actions"><button class="btn btn-green btn-small" onclick="event.stopPropagation(); saveQuickEdit(${m.id})">ZAPISZ</button><button class="btn btn-dark btn-small" onclick="event.stopPropagation(); cancelQuickEdit()">ANULUJ</button></div></td>
+          </tr>`
+        }
+        return `<tr class="clickable-row" onclick="openDetails(${m.id})">
+          <td><div class="namecell">${m.image1 ? `<img class="thumb" src="${m.image1}" alt="">` : '<div class="thumb"></div>'}<strong>${escapeHtml(m.name || 'Bez nazwy')}</strong></div></td>
+          <td><span class="badge">#${escapeHtml(m.index_number || 'brak')}</span></td>
+          <td>${escapeHtml(price(m.purchase_price))}</td><td>${escapeHtml(price(m.vat_price))}</td><td class="price-main">${escapeHtml(price(m.gross_price))}</td>
+          <td><span class="note">${escapeHtml(m.note || 'Brak notatki')}</span></td>
+          <td style="text-align:right">${actions(m)}</td>
+        </tr>`
+      }).join('')
     }
 
     function renderCards(rows) {
@@ -256,11 +326,15 @@ header('Pragma: no-cache');
 
     function actions(m) {
       return `<button class="btn btn-dark btn-small" onclick="event.stopPropagation(); openDetails(${m.id})">PODGLĄD</button>
-        <button class="btn btn-dark btn-small" onclick="event.stopPropagation(); openEdit(${m.id})">EDYTUJ</button>
+        <button class="btn btn-dark btn-small" onclick="event.stopPropagation(); startQuickEdit(mById(${m.id}))">EDYTUJ</button>
         ${state.view === 'available'
           ? `<button class="btn btn-main btn-small" onclick="event.stopPropagation(); setStatus(${m.id}, 'sold')">ARCHIWIZUJ</button>`
           : `<button class="btn btn-green btn-small" onclick="event.stopPropagation(); setStatus(${m.id}, 'available')">PRZYWRÓĆ</button><button class="btn btn-red btn-small" onclick="event.stopPropagation(); deleteMachine(${m.id})">USUŃ</button>`}
       `
+    }
+
+    function mById(id) {
+      return state.machines.find((machine) => Number(machine.id) === Number(id))
     }
 
     async function createMachine() {
