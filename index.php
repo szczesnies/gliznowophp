@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-8">
+  <link rel="stylesheet" href="/style.css?v=20260515-9">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -39,23 +39,6 @@ header('Pragma: no-cache');
       <div class="tabs">
         <button id="activeTab" class="btn btn-dark active">MAGAZYN</button>
         <button id="archiveTab" class="btn btn-dark">ARCHIWUM</button>
-      </div>
-      <div class="filters">
-        <input id="search" class="input" placeholder="Szukaj: nazwa lub indeks">
-        <input id="searchPrice" class="input" placeholder="Szukaj po cenie">
-        <select id="sortMode" class="select">
-          <option value="newest">Sortuj: najnowsze</option>
-          <option value="name">Sortuj: nazwa</option>
-          <option value="index">Sortuj: indeks</option>
-          <option value="price-desc">Cena malejąco</option>
-          <option value="price-asc">Cena rosnąco</option>
-        </select>
-        <select id="qualityFilter" class="select">
-          <option value="all">Filtr: wszystko</option>
-          <option value="no-image">Bez zdjęcia</option>
-          <option value="no-price">Bez cen</option>
-          <option value="no-note">Bez notatki</option>
-        </select>
       </div>
       <div class="actions">
         <button id="cardMode" class="btn btn-dark btn-small">Kafelki</button>
@@ -103,13 +86,12 @@ header('Pragma: no-cache');
 
     <div id="tableBox" class="tablebox"><div class="scroll"><table><thead><tr><th><button class="th-button" onclick="setSort('name')">Maszyna <span id="sortName"></span></button></th><th><button class="th-button" onclick="setSort('index')">Indeks <span id="sortIndex"></span></button></th><th>Cena zakupu</th><th>VAT</th><th><button class="th-button" onclick="setSort('price')">Cena <span id="sortPrice"></span></button></th><th>Notatka</th><th style="text-align:right">Akcje</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
     <div id="cards" class="grid hidden"></div>
-    <div id="empty" class="empty hidden"><h2>Brak maszyn</h2><p class="muted">Zmień filtry albo dodaj nową maszynę.</p></div>
+    <div id="empty" class="empty hidden"><h2>Brak maszyn</h2><p class="muted">Dodaj nową maszynę albo przełącz widok magazynu.</p></div>
 
     <nav class="mobile-nav">
       <button id="mobileActive" class="btn btn-main btn-small">Magazyn</button>
       <button id="mobileAdd" class="btn btn-main btn-small">Dodaj</button>
       <button id="mobileArchive" class="btn btn-dark btn-small">Archiwum</button>
-      <button id="mobileTop" class="btn btn-dark btn-small">Szukaj</button>
     </nav>
   </main>
 
@@ -118,7 +100,7 @@ header('Pragma: no-cache');
   <div id="loading" class="loading hidden"><div class="loading-card">Pracuję...</div></div>
 
   <script>
-    const state = { machines: [], view: 'available', mode: 'table', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
+    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
     const text = (v) => String(v ?? '')
@@ -193,16 +175,8 @@ header('Pragma: no-cache');
     }
 
     function filtered() {
-      const q = $('search').value.toLowerCase().trim()
-      const qp = $('searchPrice').value.toLowerCase().trim()
-      const quality = $('qualityFilter').value
-      const rows = state.machines.filter((m) => {
-        const matchesText = !q || text(m.name).toLowerCase().includes(q) || text(m.index_number).toLowerCase().includes(q)
-        const matchesPrice = !qp || text(m.purchase_price).toLowerCase().includes(qp) || text(m.vat_price).toLowerCase().includes(qp) || text(m.gross_price).toLowerCase().includes(qp)
-        const matchesQuality = quality === 'all' || (quality === 'no-image' && !m.image1) || (quality === 'no-price' && !m.gross_price && !m.vat_price && !m.purchase_price) || (quality === 'no-note' && !m.note)
-        return matchesText && matchesPrice && matchesQuality
-      })
-      const mode = $('sortMode').value
+      const rows = [...state.machines]
+      const mode = state.sortMode
       const num = (v) => Number(text(v).replace(',', '.').replace(/[^0-9.-]/g, '')) || 0
       rows.sort((a,b) => {
         if (mode === 'name') return text(a.name).localeCompare(text(b.name), 'pl')
@@ -215,14 +189,14 @@ header('Pragma: no-cache');
     }
 
     function setSort(type) {
-      if (type === 'name') $('sortMode').value = $('sortMode').value === 'name' ? 'newest' : 'name'
-      if (type === 'index') $('sortMode').value = $('sortMode').value === 'index' ? 'newest' : 'index'
-      if (type === 'price') $('sortMode').value = $('sortMode').value === 'price-desc' ? 'price-asc' : 'price-desc'
+      if (type === 'name') state.sortMode = state.sortMode === 'name' ? 'newest' : 'name'
+      if (type === 'index') state.sortMode = state.sortMode === 'index' ? 'newest' : 'index'
+      if (type === 'price') state.sortMode = state.sortMode === 'price-desc' ? 'price-asc' : 'price-desc'
       render()
     }
 
     function updateSortMarkers() {
-      const mode = $('sortMode').value
+      const mode = state.sortMode
       if ($('sortName')) $('sortName').textContent = mode === 'name' ? '↑' : ''
       if ($('sortIndex')) $('sortIndex').textContent = mode === 'index' ? '↑' : ''
       if ($('sortPrice')) $('sortPrice').textContent = mode === 'price-desc' ? '↓' : mode === 'price-asc' ? '↑' : ''
@@ -520,7 +494,6 @@ header('Pragma: no-cache');
     $('mobileActive').onclick = $('activeTab').onclick
     $('mobileArchive').onclick = $('archiveTab').onclick
     $('mobileAdd').onclick = () => $('formPanel').classList.toggle('hidden')
-    $('mobileTop').onclick = () => scrollTo({ top: 0, behavior: 'smooth' })
     $('toggleForm').onclick = () => $('formPanel').classList.toggle('hidden')
     $('saveNew').onclick = createMachine
     $('images').onchange = () => {
@@ -530,7 +503,6 @@ header('Pragma: no-cache');
     }
     $('tableMode').onclick = () => { state.mode = 'table'; render() }
     $('cardMode').onclick = () => { state.mode = 'cards'; render() }
-    for (const id of ['search','searchPrice','sortMode','qualityFilter']) $(id).oninput = render
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); if (!$('modal').classList.contains('hidden') && state.lightboxImages.length) { if (event.key === 'ArrowRight') nextPhoto(); if (event.key === 'ArrowLeft') prevPhoto() } })
     init()
   </script>
