@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-9">
+  <link rel="stylesheet" href="/style.css?v=20260515-10">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -39,6 +39,9 @@ header('Pragma: no-cache');
       <div class="tabs">
         <button id="activeTab" class="btn btn-dark active">MAGAZYN</button>
         <button id="archiveTab" class="btn btn-dark">ARCHIWUM</button>
+      </div>
+      <div class="searchbar">
+        <input id="search" class="input" type="search" autocomplete="off" placeholder="Szukaj po nazwie lub indeksie">
       </div>
       <div class="actions">
         <button id="cardMode" class="btn btn-dark btn-small">Kafelki</button>
@@ -100,7 +103,7 @@ header('Pragma: no-cache');
   <div id="loading" class="loading hidden"><div class="loading-card">Pracuję...</div></div>
 
   <script>
-    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
+    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
     const text = (v) => String(v ?? '')
@@ -175,7 +178,8 @@ header('Pragma: no-cache');
     }
 
     function filtered() {
-      const rows = [...state.machines]
+      const query = state.search.toLowerCase().trim()
+      const rows = state.machines.filter((m) => !query || text(m.name).toLowerCase().includes(query) || text(m.index_number).toLowerCase().includes(query))
       const mode = state.sortMode
       const num = (v) => Number(text(v).replace(',', '.').replace(/[^0-9.-]/g, '')) || 0
       rows.sort((a,b) => {
@@ -261,6 +265,7 @@ header('Pragma: no-cache');
       $('statNoImage').textContent = state.machines.filter((m) => !m.image1).length
       $('statNoNote').textContent = state.machines.filter((m) => !m.note).length
       $('empty').classList.toggle('hidden', rows.length > 0)
+      $('empty').querySelector('.muted').textContent = state.search.trim() ? 'Nie znaleziono maszyny o takiej nazwie lub numerze indeksu.' : 'Dodaj nową maszynę albo przełącz widok magazynu.'
       renderTable(rows)
       renderCards(rows)
     }
@@ -503,6 +508,7 @@ header('Pragma: no-cache');
     }
     $('tableMode').onclick = () => { state.mode = 'table'; render() }
     $('cardMode').onclick = () => { state.mode = 'cards'; render() }
+    $('search').oninput = () => { state.search = $('search').value; render() }
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); if (!$('modal').classList.contains('hidden') && state.lightboxImages.length) { if (event.key === 'ArrowRight') nextPhoto(); if (event.key === 'ArrowLeft') prevPhoto() } })
     init()
   </script>
