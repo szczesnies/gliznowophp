@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-11">
+  <link rel="stylesheet" href="/style.css?v=20260515-12">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -382,9 +382,8 @@ header('Pragma: no-cache');
         <div class="product-toolbar">
           <div class="product-toolbar-left">
             <button class="btn btn-main" onclick="closeModal()">WRÓĆ</button>
-            <button class="btn btn-dark" onclick="openEdit(${m.id})">EDYTUJ</button>
           </div>
-          <div class="product-meta">${m.status === 'sold' ? 'ARCHIWUM' : 'MAGAZYN'} / ${imgs.length} zdjęć / ID ${m.id}</div>
+          <div class="product-meta">${imgs.length} zdjęć / ID ${m.id}</div>
         </div>
         <div class="product-grid product-grid-view">
           <section class="product-gallery">
@@ -396,13 +395,13 @@ header('Pragma: no-cache');
           </section>
           <section class="product-panel product-summary-panel">
             <div class="product-head">
-              <div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><span class="status-pill ${m.status === 'sold' ? 'archive' : ''}">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span></div>
+              <div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><button class="status-pill status-action ${m.status === 'sold' ? 'archive' : ''}" onclick="setStatus(${m.id}, '${m.status === 'sold' ? 'available' : 'sold'}'); closeModal()"><span class="status-current">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span><span class="status-hover">${m.status === 'sold' ? 'Przywróć do magazynu' : 'Przenieś do archiwum'}</span></button></div>
               <h1 class="product-title">${escapeHtml(m.name || 'Bez nazwy')}</h1>
             </div>
             <div class="product-section">
               <div class="product-prices"><div class="product-price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="product-price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="product-price main"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
             </div>
-            <div class="product-section"><div class="product-actions"><button class="btn btn-dark" onclick="toggleHistory(${id})">Historia zmian</button><div id="historyList" class="history-list hidden"></div>${m.status === 'sold' ? `<button class="btn btn-green" onclick="setStatus(${m.id}, 'available'); closeModal()">PRZYWRÓĆ DO MAGAZYNU</button>` : `<button class="btn btn-main" onclick="setStatus(${m.id}, 'sold'); closeModal()">PRZENIEŚ DO ARCHIWUM</button>`}</div></div>
+            <div class="product-section"><div class="product-actions">${m.status === 'sold' ? `<button class="btn btn-green" onclick="setStatus(${m.id}, 'available'); closeModal()">PRZYWRÓĆ DO MAGAZYNU</button>` : `<button class="btn btn-main" onclick="setStatus(${m.id}, 'sold'); closeModal()">PRZENIEŚ DO ARCHIWUM</button>`}<button class="btn btn-dark" onclick="openEdit(${m.id})">EDYTUJ</button><button class="btn btn-dark" onclick="toggleHistory(${id})">Historia zmian</button><div id="historyList" class="history-list hidden"></div></div></div>
           </section>
         </div>
         <section class="product-text-panel">
