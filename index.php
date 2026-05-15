@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-5">
+  <link rel="stylesheet" href="/style.css?v=20260515-6">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -395,12 +395,39 @@ header('Pragma: no-cache');
 
     function openDetails(id) {
       const m = state.machines.find((x) => Number(x.id) === Number(id))
+      if (!m) return
       const imgs = [m.image1,m.image2,m.image3,m.image4].filter(Boolean)
-      $('modal').innerHTML = `<div class="modal-card"><div class="modal-head"><strong>${escapeHtml(m.name || 'Bez nazwy')}</strong><button class="btn btn-dark btn-small" onclick="closeModal()">X</button></div><div class="modal-body">
-        <div class="gallery">${imgs[0] ? `<img id="mainPhoto" class="gallery-main" src="${imgs[0]}" onclick="openLightbox(${id}, 0)" alt="">` : '<div class="empty">Brak zdjęć</div>'}<div class="gallery-thumbs">${imgs.map((img, index) => `<img src="${img}" onclick="$('mainPhoto').src='${img}'; $('mainPhoto').onclick=()=>openLightbox(${id}, ${index})" alt="">`).join('')}</div></div>
-        <div class="prices"><div class="price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="price highlight"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
-        <p>${escapeHtml(m.description || '')}</p><p class="muted">${escapeHtml(m.note || '')}</p>
-        <div class="history"><button class="btn btn-dark" onclick="toggleHistory(${id})">Historia zmian</button><div id="historyList" class="history-list hidden"></div></div>
+      const main = imgs[0] || ''
+      $('modal').innerHTML = `<div class="product-modal"><div class="product-wrap">
+        <div class="product-banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
+        <div class="product-toolbar">
+          <div class="product-toolbar-left">
+            <button class="btn btn-main" onclick="closeModal()">WRÓĆ</button>
+            <button class="btn btn-dark" onclick="openEdit(${m.id})">EDYTUJ</button>
+          </div>
+          <div class="product-meta">${m.status === 'sold' ? 'ARCHIWUM' : 'MAGAZYN'} / ${imgs.length} zdjęć / ID ${m.id}</div>
+        </div>
+        <div class="product-grid">
+          <section class="product-gallery">
+            <div class="product-main-photo">
+              ${main ? `<img id="mainPhoto" src="${main}" onclick="openLightbox(${id}, 0)" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div class="product-no-photo">Brak zdjęcia</div>'}
+              <div class="photo-count">${imgs.length ? '1 / ' + imgs.length : '0 / 4'}</div>
+            </div>
+            ${imgs.length ? `<div class="product-thumbs">${imgs.map((img, index) => `<img class="${index === 0 ? 'active' : ''}" src="${img}" onclick="selectProductPhoto(this, '${img}', ${id}, ${index}, ${imgs.length})" alt="Zdjęcie ${index + 1}">`).join('')}</div>` : ''}
+          </section>
+          <section class="product-panel">
+            <div class="product-head">
+              <div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><span class="status-pill ${m.status === 'sold' ? 'archive' : ''}">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span></div>
+              <h1 class="product-title">${escapeHtml(m.name || 'Bez nazwy')}</h1>
+            </div>
+            <div class="product-section">
+              <div class="product-prices"><div class="product-price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="product-price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="product-price main"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
+            </div>
+            <div class="product-section"><h2 class="section-title">Opis</h2><p class="product-copy">${escapeHtml(m.description || 'Brak opisu')}</p></div>
+            <div class="product-section"><h2 class="section-title">Notatka</h2><p class="product-copy">${escapeHtml(m.note || 'Brak notatki')}</p></div>
+            <div class="product-section"><div class="product-actions"><button class="btn btn-dark" onclick="toggleHistory(${id})">Historia zmian</button><div id="historyList" class="history-list hidden"></div>${m.status === 'sold' ? `<button class="btn btn-green" onclick="setStatus(${m.id}, 'available'); closeModal()">PRZYWRÓĆ DO MAGAZYNU</button>` : `<button class="btn btn-main" onclick="setStatus(${m.id}, 'sold'); closeModal()">PRZENIEŚ DO ARCHIWUM</button>`}</div></div>
+          </section>
+        </div>
       </div></div>`
       $('modal').classList.remove('hidden')
     }
@@ -421,6 +448,18 @@ header('Pragma: no-cache');
         : '<div class="history-item">Brak historii.</div>'
     }
 
+    function selectProductPhoto(thumb, img, id, index, total) {
+      const main = $('mainPhoto')
+      if (main) {
+        main.src = img
+        main.onclick = () => openLightbox(id, index)
+      }
+      document.querySelectorAll('.product-thumbs img').forEach((item) => item.classList.remove('active'))
+      thumb.classList.add('active')
+      const counter = document.querySelector('.photo-count')
+      if (counter) counter.textContent = (index + 1) + ' / ' + total
+    }
+
     function openLightbox(id, index) {
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       state.lightboxImages = [m.image1,m.image2,m.image3,m.image4].filter(Boolean)
@@ -439,12 +478,19 @@ header('Pragma: no-cache');
 
     function openEdit(id) {
       const m = state.machines.find((x) => Number(x.id) === Number(id))
-      $('modal').innerHTML = `<div class="modal-card"><div class="modal-head"><strong>Edycja</strong><button class="btn btn-dark btn-small" onclick="closeModal()">X</button></div><div class="modal-body row">
-        <input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks">
-        <div class="row" style="grid-template-columns:repeat(3,1fr)"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
-        <textarea id="edit_description" class="textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea><textarea id="edit_note" class="textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea>
-        <p class="muted">Podmień konkretne zdjęcie:</p><div class="row" style="grid-template-columns:repeat(4,1fr)">${[1,2,3,4].map((i) => `<input id="edit_image${i}" class="input" type="file" accept="image/*">`).join('')}</div>
-        <button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ</button>
+      if (!m) return
+      const slots = [m.image1,m.image2,m.image3,m.image4]
+      $('modal').innerHTML = `<div class="product-modal"><div class="product-wrap">
+        <div class="product-banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
+        <div class="product-toolbar"><div class="product-toolbar-left"><button class="btn btn-main" onclick="openDetails(${m.id})">WRÓĆ</button><button class="btn btn-dark" onclick="closeModal()">ZAMKNIJ</button></div><div class="product-meta">EDYCJA / ID ${m.id}</div></div>
+        <div class="product-grid">
+          <section class="product-gallery"><div class="product-main-photo">${slots.find(Boolean) ? `<img src="${slots.find(Boolean)}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div class="product-no-photo">Brak zdjęcia</div>'}</div><div class="product-thumbs">${slots.map((img, index) => img ? `<img src="${img}" alt="Zdjęcie ${index + 1}">` : '<div class="slot-empty">Pusty slot</div>').join('')}</div></section>
+          <section class="product-panel"><div class="product-head"><h1 class="product-title">Edycja maszyny</h1></div><div class="product-section"><div class="product-edit-grid">
+            <input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks">
+            <div class="row" style="grid-template-columns:repeat(3,1fr)"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
+            <textarea id="edit_description" class="textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea><textarea id="edit_note" class="textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea>
+          </div></div><div class="product-section"><h2 class="section-title">Podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}<label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*"></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
+        </div>
       </div></div>`
       $('modal').classList.remove('hidden')
     }
