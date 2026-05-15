@@ -1,0 +1,5 @@
+﻿config.php
+uploads/machines/*
+!uploads/machines/.gitkeep
+*.log
+.DS_Store
