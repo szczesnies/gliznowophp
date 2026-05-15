@@ -59,14 +59,26 @@ header('Pragma: no-cache');
     .gallery-main{min-height:260px;border:1px solid rgba(255,255,255,.08)}
     .gallery-thumbs img{opacity:.84;transition:.15s}.gallery-thumbs img:hover{opacity:1;border-color:rgba(234,179,8,.5)}
     .mobile-nav{box-shadow:0 -12px 28px rgba(0,0,0,.42)}
+    .stats{display:grid;grid-template-columns:1fr;gap:8px;margin:-4px 0 14px}
+    .stat{border:1px solid rgba(255,255,255,.08);background:#151515;border-radius:14px;padding:10px 12px}
+    .stat strong{display:block;font-size:18px;color:#fff}.stat span{display:block;margin-top:2px;color:#a1a1aa;font-size:12px;font-weight:800;text-transform:uppercase}
+    .file-preview{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+    .file-pill{border:1px solid rgba(234,179,8,.18);background:rgba(234,179,8,.08);color:#fde68a;border-radius:10px;padding:7px 8px;font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .loading{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(15,15,15,.72);backdrop-filter:blur(6px)}
+    .loading-card{border:1px solid rgba(234,179,8,.24);background:#171717;border-radius:16px;padding:18px 22px;font-weight:900;color:#facc15;box-shadow:0 18px 44px rgba(0,0,0,.42)}
+    .history{margin-top:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#141414;overflow:hidden}
+    .history button{width:100%;text-align:left;border-radius:0;background:#202020}
+    .history-list{display:grid;gap:8px;padding:10px}.history-item{border-left:3px solid #eab308;background:#1b1b1b;border-radius:10px;padding:9px 10px;font-size:13px;color:#d4d4d8}.history-item small{display:block;color:#a1a1aa;margin-bottom:4px;font-weight:800}
+    .lightbox-img{max-width:94vw;max-height:86vh;object-fit:contain;border-radius:12px;background:#050505}
     @media(max-width:699px){
       .wrap{padding:10px 10px 78px}.banner{border-radius:12px}.banner img{min-height:132px;max-height:190px}
       .panel{padding:10px}.headline{align-items:flex-start;flex-direction:column}.headline h1{font-size:23px}
       .filters{gap:7px}.actions{justify-content:stretch}.actions .btn{flex:1}
-      .tablebox{display:none}.grid.hidden{display:none!important}.grid{display:grid!important}
-      .card-img{height:150px}.prices{grid-template-columns:1fr 1fr 1fr}
+      .grid.hidden{display:none!important}
+      .card-img{height:150px}.prices{grid-template-columns:1fr 1fr 1fr}.stats{grid-template-columns:repeat(2,1fr)}
       .modal{padding:8px}.modal-card{max-height:94vh}.modal-body{padding:10px}
     }
+    @media(min-width:900px){.stats{grid-template-columns:repeat(4,1fr)}}
   </style>
 </head>
 <body>
@@ -123,6 +135,13 @@ header('Pragma: no-cache');
       <button id="toggleForm" class="btn btn-main">+ DODAJ MASZYNĘ</button>
     </div>
 
+    <section class="stats">
+      <div class="stat"><strong id="statVisible">0</strong><span>Widoczne</span></div>
+      <div class="stat"><strong id="statAll">0</strong><span>W aktualnym widoku</span></div>
+      <div class="stat"><strong id="statNoImage">0</strong><span>Bez zdjęcia</span></div>
+      <div class="stat"><strong id="statNoNote">0</strong><span>Bez notatki</span></div>
+    </section>
+
     <section id="formPanel" class="panel hidden">
       <div class="form-grid">
         <div class="form-block">
@@ -136,6 +155,7 @@ header('Pragma: no-cache');
               <input id="gross_price" class="input" placeholder="Cena">
             </div>
             <input id="images" class="input" type="file" accept="image/*" multiple>
+            <div id="filePreview" class="file-preview hidden"></div>
           </div>
         </div>
         <div class="form-block">
@@ -161,9 +181,10 @@ header('Pragma: no-cache');
 
   <div id="modal" class="modal hidden"></div>
   <div id="toast" class="toast hidden"></div>
+  <div id="loading" class="loading hidden"><div class="loading-card">Pracuję...</div></div>
 
   <script>
-    const state = { machines: [], view: 'available', mode: 'table', editingId: null }
+    const state = { machines: [], view: 'available', mode: 'table', editingId: null, lightboxImages: [], lightboxIndex: 0 }
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
     const text = (v) => String(v ?? '')
@@ -174,6 +195,11 @@ header('Pragma: no-cache');
       el.textContent = message
       el.className = `toast ${type === 'error' ? 'error' : ''}`
       setTimeout(() => el.classList.add('hidden'), 3200)
+    }
+
+    function setLoading(value, label = 'Pracuję...') {
+      $('loading').querySelector('.loading-card').textContent = label
+      $('loading').classList.toggle('hidden', !value)
     }
 
     async function init() {
@@ -218,11 +244,18 @@ header('Pragma: no-cache');
     }
 
     async function loadMachines() {
-      const res = await api(`machines&status=${state.view}`)
-      if (res.status === 401) return showLogin()
-      const data = await res.json()
-      state.machines = data.machines || []
-      render()
+      setLoading(true, 'Pobieram maszyny...')
+      try {
+        const res = await api(`machines&status=${state.view}`)
+        if (res.status === 401) return showLogin()
+        const data = await res.json()
+        state.machines = data.machines || []
+        render()
+      } catch {
+        toast('Nie udało się pobrać maszyn.', 'error')
+      } finally {
+        setLoading(false)
+      }
     }
 
     function filtered() {
@@ -259,6 +292,10 @@ header('Pragma: no-cache');
       $('cardMode').classList.toggle('btn-main', state.mode === 'cards')
       const rows = filtered()
       $('count').textContent = `Ilość: ${rows.length}`
+      $('statVisible').textContent = rows.length
+      $('statAll').textContent = state.machines.length
+      $('statNoImage').textContent = state.machines.filter((m) => !m.image1).length
+      $('statNoNote').textContent = state.machines.filter((m) => !m.note).length
       $('empty').classList.toggle('hidden', rows.length > 0)
       renderTable(rows)
       renderCards(rows)
@@ -292,38 +329,53 @@ header('Pragma: no-cache');
     }
 
     async function createMachine() {
-      const form = new FormData()
-      for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) form.append(id, $(id).value)
-      Array.from($('images').files || []).slice(0, 4).forEach((file, i) => form.append(`image${i + 1}`, file))
-      const res = await api('create', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) return toast(data.error || 'Nie udało się zapisać.', 'error')
-      for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) $(id).value = ''
-      $('images').value = ''
-      $('formPanel').classList.add('hidden')
-      toast('Maszyna dodana.')
-      loadMachines()
+      if (!$('name').value.trim()) return toast('Wpisz nazwę maszyny.', 'error')
+      setLoading(true, 'Zapisuję maszynę...')
+      try {
+        const form = new FormData()
+        for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) form.append(id, $(id).value)
+        Array.from($('images').files || []).slice(0, 4).forEach((file, i) => form.append(`image${i + 1}`, file))
+        const res = await api('create', { method: 'POST', body: form })
+        const data = await res.json()
+        if (!res.ok) return toast(data.error || 'Nie udało się zapisać.', 'error')
+        for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) $(id).value = ''
+        $('images').value = ''
+        $('filePreview').innerHTML = ''
+        $('filePreview').classList.add('hidden')
+        $('formPanel').classList.add('hidden')
+        toast('Maszyna dodana.')
+        await loadMachines()
+      } catch {
+        toast('Nie udało się zapisać maszyny.', 'error')
+      } finally {
+        setLoading(false)
+      }
     }
 
     async function setStatus(id, status) {
       const m = state.machines.find((x) => Number(x.id) === Number(id))
+      if (!m) return
+      setLoading(true, 'Zmieniam status...')
       const form = formFromMachine(m)
       form.set('status', status)
       form.set('history_action', status === 'sold' ? 'Archiwizacja' : 'Przywrócenie')
       form.set('history_details', status === 'sold' ? 'Maszyna przeniesiona do archiwum.' : 'Maszyna wróciła do magazynu.')
       const res = await api('update', { method: 'POST', body: form })
-      if (!res.ok) return toast('Nie udało się zmienić statusu.', 'error')
+      if (!res.ok) { setLoading(false); return toast('Nie udało się zmienić statusu.', 'error') }
       toast('Zmieniono status.')
-      loadMachines()
+      await loadMachines()
+      setLoading(false)
     }
 
     async function deleteMachine(id) {
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       if (!confirm(`Usunąć na stałe: ${m?.name || 'maszyna'}?`)) return
+      setLoading(true, 'Usuwam maszynę...')
       const res = await api('delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-      if (!res.ok) return toast('Nie udało się usunąć.', 'error')
+      if (!res.ok) { setLoading(false); return toast('Nie udało się usunąć.', 'error') }
       toast('Usunięto maszynę.')
-      loadMachines()
+      await loadMachines()
+      setLoading(false)
     }
 
     function formFromMachine(m) {
@@ -336,12 +388,45 @@ header('Pragma: no-cache');
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       const imgs = [m.image1,m.image2,m.image3,m.image4].filter(Boolean)
       $('modal').innerHTML = `<div class="modal-card"><div class="modal-head"><strong>${escapeHtml(m.name || 'Bez nazwy')}</strong><button class="btn btn-dark btn-small" onclick="closeModal()">X</button></div><div class="modal-body">
-        <div class="gallery">${imgs[0] ? `<img id="mainPhoto" class="gallery-main" src="${imgs[0]}" alt="">` : '<div class="empty">Brak zdjęć</div>'}<div class="gallery-thumbs">${imgs.map((img) => `<img src="${img}" onclick="$('mainPhoto').src='${img}'" alt="">`).join('')}</div></div>
+        <div class="gallery">${imgs[0] ? `<img id="mainPhoto" class="gallery-main" src="${imgs[0]}" onclick="openLightbox(${id}, 0)" alt="">` : '<div class="empty">Brak zdjęć</div>'}<div class="gallery-thumbs">${imgs.map((img, index) => `<img src="${img}" onclick="$('mainPhoto').src='${img}'; $('mainPhoto').onclick=()=>openLightbox(${id}, ${index})" alt="">`).join('')}</div></div>
         <div class="prices"><div class="price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="price highlight"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
         <p>${escapeHtml(m.description || '')}</p><p class="muted">${escapeHtml(m.note || '')}</p>
+        <div class="history"><button class="btn btn-dark" onclick="toggleHistory(${id})">Historia zmian</button><div id="historyList" class="history-list hidden"></div></div>
       </div></div>`
       $('modal').classList.remove('hidden')
     }
+
+    async function toggleHistory(id) {
+      const list = $('historyList')
+      if (!list.classList.contains('hidden')) {
+        list.classList.add('hidden')
+        return
+      }
+      list.classList.remove('hidden')
+      list.innerHTML = '<div class="history-item">Pobieram historię...</div>'
+      const res = await api(`history&id=${id}`)
+      const data = await res.json()
+      const rows = data.history || []
+      list.innerHTML = rows.length
+        ? rows.map((h) => `<div class="history-item"><small>${escapeHtml(h.created_at || '')} · ${escapeHtml(h.action || '')}</small>${escapeHtml(h.details || '')}</div>`).join('')
+        : '<div class="history-item">Brak historii.</div>'
+    }
+
+    function openLightbox(id, index) {
+      const m = state.machines.find((x) => Number(x.id) === Number(id))
+      state.lightboxImages = [m.image1,m.image2,m.image3,m.image4].filter(Boolean)
+      state.lightboxIndex = index
+      renderLightbox()
+    }
+
+    function renderLightbox() {
+      const img = state.lightboxImages[state.lightboxIndex]
+      $('modal').innerHTML = `<div class="modal" onclick="closeModal()"><button class="btn btn-dark" style="position:fixed;top:14px;right:14px;z-index:2" onclick="event.stopPropagation();closeModal()">X</button><button class="btn btn-dark" style="position:fixed;left:14px;top:50%;z-index:2" onclick="event.stopPropagation();prevPhoto()">‹</button><img class="lightbox-img" src="${img}" onclick="event.stopPropagation()" alt=""><button class="btn btn-dark" style="position:fixed;right:14px;top:50%;z-index:2" onclick="event.stopPropagation();nextPhoto()">›</button><div class="badge" style="position:fixed;bottom:18px;left:50%;transform:translateX(-50%)">${state.lightboxIndex + 1}/${state.lightboxImages.length}</div></div>`
+      $('modal').classList.remove('hidden')
+    }
+
+    function nextPhoto(){ state.lightboxIndex = (state.lightboxIndex + 1) % state.lightboxImages.length; renderLightbox() }
+    function prevPhoto(){ state.lightboxIndex = (state.lightboxIndex - 1 + state.lightboxImages.length) % state.lightboxImages.length; renderLightbox() }
 
     function openEdit(id) {
       const m = state.machines.find((x) => Number(x.id) === Number(id))
@@ -356,6 +441,7 @@ header('Pragma: no-cache');
     }
 
     async function saveEdit(id) {
+      setLoading(true, 'Zapisuję zmiany...')
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       const form = formFromMachine(m)
       form.set('name', $('edit_name').value); form.set('index_number', $('edit_index').value); form.set('purchase_price', $('edit_purchase').value); form.set('vat_price', $('edit_vat').value); form.set('gross_price', $('edit_gross').value); form.set('description', $('edit_description').value); form.set('note', $('edit_note').value)
@@ -363,8 +449,8 @@ header('Pragma: no-cache');
       form.set('history_action', 'Edycja'); form.set('history_details', 'Zaktualizowano dane maszyny.')
       const res = await api('update', { method: 'POST', body: form })
       const data = await res.json()
-      if (!res.ok) return toast(data.error || 'Nie udało się zapisać.', 'error')
-      closeModal(); toast('Zapisano.'); loadMachines()
+      if (!res.ok) { setLoading(false); return toast(data.error || 'Nie udało się zapisać.', 'error') }
+      closeModal(); toast('Zapisano.'); await loadMachines(); setLoading(false)
     }
 
     function closeModal(){ $('modal').classList.add('hidden'); $('modal').innerHTML = '' }
@@ -382,9 +468,15 @@ header('Pragma: no-cache');
     $('mobileTop').onclick = () => scrollTo({ top: 0, behavior: 'smooth' })
     $('toggleForm').onclick = () => $('formPanel').classList.toggle('hidden')
     $('saveNew').onclick = createMachine
+    $('images').onchange = () => {
+      const files = Array.from($('images').files || []).slice(0, 4)
+      $('filePreview').classList.toggle('hidden', files.length === 0)
+      $('filePreview').innerHTML = files.map((file, index) => `<div class="file-pill">${index + 1}. ${escapeHtml(file.name)}</div>`).join('')
+    }
     $('tableMode').onclick = () => { state.mode = 'table'; render() }
     $('cardMode').onclick = () => { state.mode = 'cards'; render() }
     for (const id of ['search','searchPrice','sortMode','qualityFilter']) $(id).oninput = render
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); if (!$('modal').classList.contains('hidden') && state.lightboxImages.length) { if (event.key === 'ArrowRight') nextPhoto(); if (event.key === 'ArrowLeft') prevPhoto() } })
     init()
   </script>
 </body>

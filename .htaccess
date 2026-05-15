@@ -16,3 +16,10 @@ RewriteEngine On
   Require all denied
 </Files>
 
+<Files "database.sql">
+  Require all denied
+</Files>
+
+<Files "README.md">
+  Require all denied
+</Files>
