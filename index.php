@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-2">
+  <link rel="stylesheet" href="/style.css?v=20260515-3">
 </head>
 <body style="background:#0f0f0f;color:#f4f4f5;margin:0">
   <div id="loginView" class="login hidden">
@@ -69,7 +69,7 @@ header('Pragma: no-cache');
       <button id="toggleForm" class="btn btn-main">+ DODAJ MASZYNĘ</button>
     </div>
 
-    <section class="stats">
+    <section class="stats hidden" aria-hidden="true">
       <div class="stat"><strong id="statVisible">0</strong><span>Widoczne</span></div>
       <div class="stat"><strong id="statAll">0</strong><span>W aktualnym widoku</span></div>
       <div class="stat"><strong id="statNoImage">0</strong><span>Bez zdjęcia</span></div>
