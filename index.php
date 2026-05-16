@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-10">
+  <link rel="stylesheet" href="/style.css?v=20260516-11">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -477,23 +477,26 @@ header('Pragma: no-cache');
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       if (!m) return
       const slots = [m.image1,m.image2,m.image3,m.image4]
+      const main = slots.find(Boolean) || ''
       $('modal').innerHTML = `<div class="product-modal"><div class="product-wrap">
         <div class="product-banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
         <div class="product-toolbar"><div class="product-toolbar-left"><button class="btn btn-main" onclick="openDetails(${m.id})">WRÓĆ</button><button class="btn btn-dark" onclick="closeModal()">ZAMKNIJ</button></div><div class="product-meta">EDYCJA / ID ${m.id}</div></div>
-        <div class="product-grid">
-          <section class="product-gallery"><div class="product-main-photo">${slots.find(Boolean) ? `<img src="${slots.find(Boolean)}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div class="product-no-photo">Brak zdjęcia</div>'}</div><div class="product-thumbs">${slots.map((img, index) => img ? `<img src="${img}" alt="Zdjęcie ${index + 1}">` : '<div class="slot-empty">Pusty slot</div>').join('')}</div></section>
-          <section class="product-panel"><div class="product-head"><h1 class="product-title">Edycja maszyny</h1></div><div class="product-section"><div class="product-edit-grid">
-            <input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks">
-            <div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
-            <textarea id="edit_description" class="textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea><textarea id="edit_note" class="textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea>
-          </div></div><div class="product-section"><h2 class="section-title">Zdjęcia</h2><label class="upload-box" for="edit_images_all"><strong>Podmień kilka zdjęć naraz</strong><span>Możesz wybrać do 4 zdjęć. Zastąpią sloty od pierwszego zdjęcia.</span></label><input id="edit_images_all" class="input file-input" type="file" accept="image/*" multiple><div id="editFilePreview" class="file-preview hidden"></div><h2 class="section-title slot-section-title">Albo podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card"><div id="edit_slot_preview_${i}" class="slot-preview">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}</div><label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*" onchange="renderEditSlotPreview(${i})"><div id="edit_image_name_${i}" class="slot-file-name hidden"></div></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
+        <div class="product-grid product-grid-view product-grid-edit">
+          <section class="product-gallery"><div class="product-main-photo">${main ? `<img id="editMainPhoto" src="${main}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div id="editMainPhoto" class="product-no-photo">Brak zdjęcia</div>'}<div class="photo-count">${slots.filter(Boolean).length} / 4</div></div><div class="product-thumbs">${slots.map((img, index) => img ? `<img src="${img}" alt="Zdjęcie ${index + 1}">` : '<div class="slot-empty">Pusty slot</div>').join('')}</div></section>
+          <section class="product-panel product-summary-panel">
+            <div class="product-head"><div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><span class="status-pill ${m.status === 'sold' ? 'archive' : ''}">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span></div><h1 class="product-title">Edycja maszyny</h1></div>
+            <div class="product-section"><div class="product-edit-grid"><input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks"><div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div></div></div>
+            <div class="product-section"><h2 class="section-title">Zdjęcia</h2><label class="upload-box" for="edit_images_all"><strong>Podmień kilka zdjęć naraz</strong><span>Możesz wybrać do 4 zdjęć. Zastąpią sloty od pierwszego zdjęcia.</span></label><input id="edit_images_all" class="input file-input" type="file" accept="image/*" multiple><div id="editFilePreview" class="file-preview hidden"></div></div>
+            <div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div>
+          </section>
         </div>
+        <section class="product-text-panel product-edit-text-panel"><div class="product-section"><h2 class="section-title">Opis</h2><textarea id="edit_description" class="textarea edit-long-textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea></div><div class="product-section"><h2 class="section-title">Notatka</h2><textarea id="edit_note" class="textarea edit-long-textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea></div></section>
+        <section class="product-text-panel product-edit-photo-panel"><div class="product-section"><h2 class="section-title">Podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card"><div id="edit_slot_preview_${i}" class="slot-preview">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}</div><label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*" onchange="renderEditSlotPreview(${i})"><div id="edit_image_name_${i}" class="slot-file-name hidden"></div></div>`).join('')}</div></div></section>
       </div></div>`
       $('modal').classList.remove('hidden')
       const editAllInput = $('edit_images_all')
       if (editAllInput) editAllInput.onchange = renderEditImagePreview
     }
-
     async function saveEdit(id) {
       setLoading(true, 'Zapisuję zmiany...')
       const m = state.machines.find((x) => Number(x.id) === Number(id))

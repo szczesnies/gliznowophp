@@ -59,3 +59,8 @@ body{background:radial-gradient(circle at 50% -180px,rgba(234,179,8,.11),transpa
 /* edit-photo-preview-20260516 */
 .slot-preview img{display:block;width:100%;height:120px;border-radius:12px;background:#242424;object-fit:cover}.slot-file-name{margin-top:7px;border:1px solid rgba(234,179,8,.18);border-radius:10px;background:rgba(234,179,8,.08);color:#fde68a;padding:7px 8px;font-size:11px;font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:699px){.slot-preview img{height:104px}.slot-file-name{font-size:12px}}
+
+/* edit-layout-align-20260516 */
+.product-grid-edit{align-items:start}.product-edit-text-panel .product-section{padding:16px 18px}.edit-long-textarea{min-height:150px}.product-edit-photo-panel{margin-top:14px}.product-edit-photo-panel .slot-grid{margin-top:4px}.product-grid-edit .product-summary-panel{align-self:stretch}
+@media(min-width:1100px){.product-grid-edit{grid-template-columns:minmax(0,1fr) 380px}.product-edit-text-panel{margin-top:14px}.product-edit-photo-panel .slot-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:699px){.edit-long-textarea{min-height:130px}.product-edit-photo-panel{margin-top:12px}}
