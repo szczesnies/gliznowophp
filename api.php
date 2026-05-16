@@ -19,12 +19,14 @@ try {
 
         session_regenerate_id(true);
         $_SESSION['user_email'] = strtolower(trim($email));
+        remember_login_session();
         json_response(['ok' => true]);
     }
 
     if ($action === 'logout' && $method === 'POST') {
         $_SESSION = [];
         session_destroy();
+        forget_login_session();
         json_response(['ok' => true]);
     }
 

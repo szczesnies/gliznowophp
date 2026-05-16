@@ -13,6 +13,9 @@ const DB_PASSWORD = 'haslo_mysql';
 // Minimum 32 znaki. Zmien na losowy sekret.
 const AUTH_SECRET = 'wpisz-tu-dlugi-losowy-sekret-minimum-32-znaki';
 
+// 30 dni zapamiętania logowania na telefonie i w przeglądarce.
+const SESSION_LIFETIME = 2592000;
+
 // Jedno lub wiecej kont.
 const APP_USERS = [
     ['email' => 'admin@gliznowo.pl', 'password' => 'zmien-to-haslo'],

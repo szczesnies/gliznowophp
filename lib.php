@@ -7,15 +7,61 @@ require_once __DIR__ . '/config.php';
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+$sessionLifetime = defined('SESSION_LIFETIME') ? (int)SESSION_LIFETIME : 60 * 60 * 24 * 30;
+ini_set('session.gc_maxlifetime', (string)$sessionLifetime);
+ini_set('session.cookie_lifetime', (string)$sessionLifetime);
+
 session_name('maszyny_session');
-session_set_cookie_params([
-    'lifetime' => 60 * 60 * 24 * 180,
-    'path' => '/',
-    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
+session_set_cookie_params(session_cookie_options());
 session_start();
+
+if (!empty($_SESSION['user_email'])) {
+    remember_login_session();
+}
+
+function session_lifetime_seconds(): int
+{
+    return defined('SESSION_LIFETIME') ? (int)SESSION_LIFETIME : 60 * 60 * 24 * 30;
+}
+
+function is_secure_request(): bool
+{
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        return true;
+    }
+    return strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
+function session_cookie_options(int $lifetime = null): array
+{
+    $lifetime ??= session_lifetime_seconds();
+    return [
+        'expires' => $lifetime > 0 ? time() + $lifetime : 0,
+        'lifetime' => $lifetime,
+        'path' => '/',
+        'secure' => is_secure_request(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ];
+}
+
+function remember_login_session(): void
+{
+    if (headers_sent() || session_status() !== PHP_SESSION_ACTIVE || session_id() === '') {
+        return;
+    }
+
+    setcookie(session_name(), session_id(), session_cookie_options());
+}
+
+function forget_login_session(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    setcookie(session_name(), '', session_cookie_options(-3600));
+}
 
 function db(): PDO
 {
