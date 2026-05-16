@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-1">
+  <link rel="stylesheet" href="/style.css?v=20260516-2">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -207,7 +207,6 @@ header('Pragma: no-cache');
     }
 
     function startQuickEdit(machine) {
-      state.mode = 'table'
       state.editingId = Number(machine.id)
       state.edit = {
         name: text(machine.name),
@@ -294,12 +293,31 @@ header('Pragma: no-cache');
     }
 
     function renderCards(rows) {
-      $('cards').innerHTML = rows.map((m) => `<article class="card clickable-card" onclick="openDetails(${m.id})">
-        ${m.image1 ? `<img class="card-img" src="${m.image1}" alt="${escapeHtml(m.name)}">` : '<div class="card-img"></div>'}
-        <div class="card-body"><span class="badge">#${escapeHtml(m.index_number || 'brak')}</span><h3>${escapeHtml(m.name || 'Bez nazwy')}</h3>
-        <div class="prices"><div class="price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="price highlight"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
-        <p class="note">${escapeHtml(m.note || 'Brak notatki')}</p><div class="actions">${actions(m)}</div></div>
-      </article>`).join('')
+      $('cards').innerHTML = rows.map((m) => {
+        const editing = state.editingId === Number(m.id)
+        if (editing) {
+          return `<article class="card quick-card" onclick="event.stopPropagation()">
+            ${m.image1 ? `<img class="card-img" src="${m.image1}" alt="${escapeHtml(m.name)}">` : '<div class="card-img"></div>'}
+            <div class="card-body quick-card-body">
+              <div class="quick-card-grid">
+                <input class="input" value="${escapeAttr(state.edit.name)}" oninput="setEditField('name', this.value)" placeholder="Nazwa">
+                <input class="input" value="${escapeAttr(state.edit.index_number)}" oninput="setEditField('index_number', this.value)" placeholder="Indeks">
+                <input class="input" value="${escapeAttr(state.edit.purchase_price)}" oninput="setEditField('purchase_price', this.value)" placeholder="Cena zakupu">
+                <input class="input" value="${escapeAttr(state.edit.vat_price)}" oninput="setEditField('vat_price', this.value)" placeholder="VAT">
+                <input class="input" value="${escapeAttr(state.edit.gross_price)}" oninput="setEditField('gross_price', this.value)" placeholder="Cena">
+                <textarea class="textarea quick-card-note" oninput="setEditField('note', this.value)" placeholder="Notatka">${escapeHtml(state.edit.note)}</textarea>
+              </div>
+              <div class="quick-card-actions"><button class="btn btn-green" onclick="saveQuickEdit(${m.id})">ZAPISZ</button><button class="btn btn-dark" onclick="cancelQuickEdit()">ANULUJ</button></div>
+            </div>
+          </article>`
+        }
+        return `<article class="card clickable-card" onclick="openDetails(${m.id})">
+          ${m.image1 ? `<img class="card-img" src="${m.image1}" alt="${escapeHtml(m.name)}">` : '<div class="card-img"></div>'}
+          <div class="card-body"><span class="badge">#${escapeHtml(m.index_number || 'brak')}</span><h3>${escapeHtml(m.name || 'Bez nazwy')}</h3>
+          <div class="prices"><div class="price"><strong>Cena zakupu</strong><span>${escapeHtml(price(m.purchase_price))}</span></div><div class="price"><strong>VAT</strong><span>${escapeHtml(price(m.vat_price))}</span></div><div class="price highlight"><strong>Cena</strong><span>${escapeHtml(price(m.gross_price))}</span></div></div>
+          <p class="note">${escapeHtml(m.note || 'Brak notatki')}</p><div class="actions">${actions(m)}</div></div>
+        </article>`
+      }).join('')
     }
 
     function actions(m) {
