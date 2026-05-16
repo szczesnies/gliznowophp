@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-4">
+  <link rel="stylesheet" href="/style.css?v=20260516-5">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -517,15 +517,16 @@ header('Pragma: no-cache');
       if (!file || !file.type.startsWith('image/')) return file
       const maxSide = 1600
       const quality = 0.82
+      let sourceHandle = null
       try {
-        const image = await loadImageElement(file)
-        const orientation = await readJpegOrientation(file)
-        const browserAppliedOrientation = orientation >= 5 && image.naturalHeight > image.naturalWidth
-        const needsRotation = orientation >= 5 && !browserAppliedOrientation
-        const sourceWidth = image.naturalWidth || image.width
-        const sourceHeight = image.naturalHeight || image.height
-        const orientedWidth = needsRotation ? sourceHeight : sourceWidth
-        const orientedHeight = needsRotation ? sourceWidth : sourceHeight
+        const loaded = await loadCanvasSource(file)
+        sourceHandle = loaded.source
+        const orientation = loaded.alreadyOriented ? 1 : await readJpegOrientation(file)
+        const sourceWidth = sourceHandle.width || sourceHandle.naturalWidth
+        const sourceHeight = sourceHandle.height || sourceHandle.naturalHeight
+        const rotated = orientation >= 5 && orientation <= 8
+        const orientedWidth = rotated ? sourceHeight : sourceWidth
+        const orientedHeight = rotated ? sourceWidth : sourceHeight
         const scale = Math.min(1, maxSide / Math.max(orientedWidth, orientedHeight))
         const width = Math.max(1, Math.round(orientedWidth * scale))
         const height = Math.max(1, Math.round(orientedHeight * scale))
@@ -533,21 +534,30 @@ header('Pragma: no-cache');
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext('2d')
-        ctx.save()
-        if (needsRotation) {
-          applyExifOrientation(ctx, orientation, width, height)
-          ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight, 0, 0, height, width)
-        } else {
-          ctx.drawImage(image, 0, 0, width, height)
-        }
-        ctx.restore()
+        applyExifTransform(ctx, orientation, width, height)
+        const drawWidth = rotated ? height : width
+        const drawHeight = rotated ? width : height
+        ctx.drawImage(sourceHandle, 0, 0, sourceWidth, sourceHeight, 0, 0, drawWidth, drawHeight)
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', quality))
         if (!blob) return file
         const base = file.name.replace(/\.[^.]+$/, '') || 'zdjecie'
         return new File([blob], `${base}.webp`, { type: 'image/webp', lastModified: Date.now() })
       } catch {
         return file
+      } finally {
+        if (sourceHandle && typeof sourceHandle.close === 'function') sourceHandle.close()
       }
+    }
+
+    async function loadCanvasSource(file) {
+      if ('createImageBitmap' in window) {
+        try {
+          return { source: await createImageBitmap(file, { imageOrientation: 'none' }), alreadyOriented: false }
+        } catch {
+          return { source: await createImageBitmap(file), alreadyOriented: true }
+        }
+      }
+      return { source: await loadImageElement(file), alreadyOriented: true }
     }
 
     async function loadImageElement(file) {
@@ -580,6 +590,7 @@ header('Pragma: no-cache');
           const tiff = exifStart + 6
           const little = view.getUint16(tiff, false) === 0x4949
           const firstIfd = tiff + view.getUint32(tiff + 4, little)
+          if (firstIfd < 0 || firstIfd + 2 > view.byteLength) return 1
           const entries = view.getUint16(firstIfd, little)
           for (let i = 0; i < entries; i++) {
             const entry = firstIfd + 2 + i * 12
@@ -600,16 +611,37 @@ header('Pragma: no-cache');
       return value
     }
 
-    function applyExifOrientation(ctx, orientation, width, height) {
-      if (orientation === 6) {
-        ctx.translate(width, 0)
-        ctx.rotate(Math.PI / 2)
-      } else if (orientation === 8) {
-        ctx.translate(0, height)
-        ctx.rotate(-Math.PI / 2)
-      } else if (orientation === 3) {
-        ctx.translate(width, height)
-        ctx.rotate(Math.PI)
+    function applyExifTransform(ctx, orientation, width, height) {
+      switch (orientation) {
+        case 2:
+          ctx.translate(width, 0)
+          ctx.scale(-1, 1)
+          break
+        case 3:
+          ctx.translate(width, height)
+          ctx.rotate(Math.PI)
+          break
+        case 4:
+          ctx.translate(0, height)
+          ctx.scale(1, -1)
+          break
+        case 5:
+          ctx.rotate(Math.PI / 2)
+          ctx.scale(1, -1)
+          break
+        case 6:
+          ctx.translate(width, 0)
+          ctx.rotate(Math.PI / 2)
+          break
+        case 7:
+          ctx.translate(width, height)
+          ctx.rotate(Math.PI / 2)
+          ctx.scale(-1, 1)
+          break
+        case 8:
+          ctx.translate(0, height)
+          ctx.rotate(-Math.PI / 2)
+          break
       }
     }
     function closeModal(){ $('modal').classList.add('hidden'); $('modal').innerHTML = '' }
