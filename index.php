@@ -18,7 +18,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-18">
+  <link rel="stylesheet" href="/style.css?v=20260516-19">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -39,7 +39,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
   </div>
 
   <main id="appView" class="wrap hidden">
-    <div class="banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
+    <div class="banner"><img src="/banner.png?v=20260516-19" alt="Maszyny Gliznowo"></div>
     <section class="panel row topbar">
       <div class="tabs">
         <button id="activeTab" class="btn btn-dark active">MAGAZYN</button>
@@ -410,7 +410,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
       const imgs = [m.image1,m.image2,m.image3,m.image4].filter(Boolean)
       const main = imgs[0] || ''
       $('modal').innerHTML = `<div class="product-modal"><div class="product-wrap">
-        <div class="product-banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
+        <div class="product-banner"><img src="/banner.png?v=20260516-19" alt="Maszyny Gliznowo"></div>
         <div class="product-toolbar">
           <div class="product-toolbar-left">
             <button class="btn btn-main" onclick="closeModal()">WRÓĆ</button>
@@ -504,7 +504,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
       const slots = [m.image1,m.image2,m.image3,m.image4]
       const main = slots.find(Boolean) || ''
       $('modal').innerHTML = `<div class="product-modal"><div class="product-wrap">
-        <div class="product-banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
+        <div class="product-banner"><img src="/banner.png?v=20260516-19" alt="Maszyny Gliznowo"></div>
         <div class="product-toolbar"><div class="product-toolbar-left"><button class="btn btn-main" onclick="openDetails(${m.id})">WRÓĆ</button><button class="btn btn-dark" onclick="closeModal()">ZAMKNIJ</button></div><div class="product-meta">EDYCJA / ID ${m.id}</div></div>
         <div class="product-grid product-grid-view product-grid-edit">
           <section class="product-gallery product-edit-gallery"><div class="product-main-photo">${main ? `<img id="editMainPhoto" src="${main}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div id="editMainPhoto" class="product-no-photo">Brak zdjęcia</div>'}<div class="photo-count">${slots.filter(Boolean).length} / 4</div></div><div class="product-thumbs edit-photo-slots">${[1,2,3,4].map((slot) => { const img = slots[slot-1]; return `<label class="edit-photo-slot" for="edit_image${slot}"><span class="edit-slot-number">Zdjęcie ${slot}</span><div id="edit_slot_preview_${slot}" class="edit-slot-preview">${img ? `<img src="${img}" alt="Zdjęcie ${slot}">` : '<div class="slot-empty">Pusty slot</div>'}</div><span class="edit-slot-action">Dotknij, aby podmienić</span><input id="edit_image${slot}" class="input edit-slot-input" type="file" accept="image/*" onchange="renderEditSlotPreview(${slot})"><div id="edit_image_name_${slot}" class="slot-file-name hidden"></div></label>` }).join('')} </div></section>
