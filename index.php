@@ -2,6 +2,11 @@
 declare(strict_types=1);
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'");
 ?>
 <!doctype html>
 <html lang="pl">
@@ -13,7 +18,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-16">
+  <link rel="stylesheet" href="/style.css?v=20260516-17">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -102,13 +107,20 @@ header('Pragma: no-cache');
   <div id="loading" class="loading hidden"><div class="loading-card">Pracuję...</div></div>
 
   <script>
-    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0, lightboxMachineId: null }
+    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0, lightboxMachineId: null, csrf: '' }
     const selectedCreateImages = []
     const preferredMode = () => window.matchMedia('(max-width: 699px)').matches ? 'cards' : 'table'
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
     const text = (v) => String(v ?? '')
-    const api = (action, options = {}) => fetch(`api.php?action=${action}`, options)
+    function api(action, options = {}) {
+      const request = { ...options }
+      const method = (request.method || 'GET').toUpperCase()
+      const headers = new Headers(request.headers || {})
+      if (method !== 'GET' && state.csrf) headers.set('X-CSRF-Token', state.csrf)
+      request.headers = headers
+      return fetch(`api.php?action=${action}`, request)
+    }
 
     function toast(message, type = 'ok') {
       const el = $('toast')
@@ -126,7 +138,7 @@ header('Pragma: no-cache');
       try {
         const res = await api('me')
         const data = await res.json()
-        if (data.authenticated) showApp()
+        if (data.authenticated) { state.csrf = data.csrf || ''; showApp() }
         else showLogin()
       } catch {
         showLogin()
@@ -155,11 +167,14 @@ header('Pragma: no-cache');
         $('loginError').textContent = 'Nieprawidłowy email lub hasło'
         return
       }
+      const data = await res.json()
+      state.csrf = data.csrf || ''
       showApp()
     }
 
     async function logout() {
       await api('logout', { method: 'POST' })
+      state.csrf = ''
       showLogin()
     }
 

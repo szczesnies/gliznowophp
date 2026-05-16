@@ -16,10 +16,12 @@ const AUTH_SECRET = 'wpisz-tu-dlugi-losowy-sekret-minimum-32-znaki';
 // 30 dni zapamiętania logowania na telefonie i w przeglądarce.
 const SESSION_LIFETIME = 2592000;
 
-// Jedno lub wiecej kont.
+// Jedno lub wiecej kont. Najbezpieczniej uzywac password_hash.
+// Wygeneruj hash na serwerze:
+// php -r "echo password_hash('twoje-haslo', PASSWORD_DEFAULT) . PHP_EOL;"
 const APP_USERS = [
-    ['email' => 'admin@gliznowo.pl', 'password' => 'zmien-to-haslo'],
-    // ['email' => 'pracownik@gliznowo.pl', 'password' => 'drugie-haslo'],
+    ['email' => 'admin@gliznowo.pl', 'password_hash' => 'wklej-tu-hash-hasla'],
+    // ['email' => 'pracownik@gliznowo.pl', 'password_hash' => 'hash-drugiego-hasla'],
 ];
 
 const MAX_IMAGE_SIZE = 10485760; // 10 MB, limit awaryjny bez konwersji

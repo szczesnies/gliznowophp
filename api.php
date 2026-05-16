@@ -13,17 +13,25 @@ try {
         $email = clean_text($payload['email'] ?? '', 255);
         $password = clean_text($payload['password'] ?? '', 255);
 
+        if (login_rate_limited()) {
+            json_response(['error' => 'Zbyt wiele prób logowania. Spróbuj ponownie za kilka minut.'], 429);
+        }
+
         if (!valid_login($email, $password)) {
+            register_failed_login();
             json_response(['error' => 'Nieprawidłowy email lub hasło.'], 401);
         }
 
+        register_successful_login();
         session_regenerate_id(true);
         $_SESSION['user_email'] = strtolower(trim($email));
+        csrf_token();
         remember_login_session();
-        json_response(['ok' => true]);
+        json_response(['ok' => true, 'csrf' => csrf_token()]);
     }
 
     if ($action === 'logout' && $method === 'POST') {
+        if (!empty($_SESSION['user_email'])) require_csrf();
         $_SESSION = [];
         session_destroy();
         forget_login_session();
@@ -31,10 +39,11 @@ try {
     }
 
     if ($action === 'me') {
-        json_response(['authenticated' => !empty($_SESSION['user_email']), 'email' => $_SESSION['user_email'] ?? null]);
+        json_response(['authenticated' => !empty($_SESSION['user_email']), 'email' => $_SESSION['user_email'] ?? null, 'csrf' => !empty($_SESSION['user_email']) ? csrf_token() : null]);
     }
 
     require_auth();
+    if ($method !== 'GET') require_csrf();
 
     if ($action === 'machines' && $method === 'GET') {
         $status = validate_status((string)($_GET['status'] ?? 'available'));
@@ -175,6 +184,6 @@ try {
     json_response(['error' => 'Nieznana akcja.'], 404);
 } catch (Throwable $error) {
     error_log($error->getMessage());
-    json_response(['error' => $error->getMessage() ?: 'Błąd serwera.'], 500);
+    json_response(['error' => 'Błąd serwera. Spróbuj ponownie za chwilę.'], 500);
 }
 

@@ -23,3 +23,14 @@ RewriteEngine On
 <Files "README.md">
   Require all denied
 </Files>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+<FilesMatch "\.(env|ini|log|sql|bak|backup|old|orig|save|swp)$">
+  Require all denied
+</FilesMatch>

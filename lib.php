@@ -6,6 +6,8 @@ require_once __DIR__ . '/config.php';
 
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
 
 $sessionLifetime = defined('SESSION_LIFETIME') ? (int)SESSION_LIFETIME : 60 * 60 * 24 * 30;
 ini_set('session.gc_maxlifetime', (string)$sessionLifetime);
@@ -14,6 +16,13 @@ ini_set('session.cookie_lifetime', (string)$sessionLifetime);
 session_name('maszyny_session');
 session_set_cookie_params(session_cookie_options());
 session_start();
+
+if (!headers_sent()) {
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: no-referrer');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+}
 
 if (!empty($_SESSION['user_email'])) {
     remember_login_session();
@@ -130,12 +139,69 @@ function require_auth(): void
     }
 }
 
+function csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrf_token'];
+}
+
+function require_same_origin(): void
+{
+    $origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+    if ($origin === '') {
+        return;
+    }
+
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    $expected = (is_secure_request() ? 'https://' : 'http://') . $host;
+    if (!hash_equals($expected, $origin)) {
+        json_response(['error' => 'Forbidden'], 403);
+    }
+}
+
+function require_csrf(): void
+{
+    require_same_origin();
+
+    $token = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    if ($token === '' || empty($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], $token)) {
+        json_response(['error' => 'Nieprawidłowy token bezpieczeństwa. Odśwież stronę i spróbuj ponownie.'], 403);
+    }
+}
+
+function login_rate_limited(): bool
+{
+    $until = (int)($_SESSION['login_block_until'] ?? 0);
+    return $until > time();
+}
+
+function register_failed_login(): void
+{
+    $attempts = (int)($_SESSION['login_attempts'] ?? 0) + 1;
+    $_SESSION['login_attempts'] = $attempts;
+    if ($attempts >= 8) {
+        $_SESSION['login_block_until'] = time() + 600;
+    }
+}
+
+function register_successful_login(): void
+{
+    unset($_SESSION['login_attempts'], $_SESSION['login_block_until']);
+}
+
 function valid_login(string $email, string $password): bool
 {
     foreach (APP_USERS as $user) {
         $userEmail = strtolower(trim((string)($user['email'] ?? '')));
         $userPassword = (string)($user['password'] ?? '');
-        if (hash_equals($userEmail, strtolower(trim($email))) && hash_equals($userPassword, $password)) {
+        $hash = (string)($user['password_hash'] ?? '');
+        if (hash_equals($userEmail, strtolower(trim($email))) && $hash !== '' && password_verify($password, $hash)) {
+            return true;
+        }
+        if (hash_equals($userEmail, strtolower(trim($email))) && $hash === '' && hash_equals($userPassword, $password)) {
             return true;
         }
     }
