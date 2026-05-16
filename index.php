@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-11">
+  <link rel="stylesheet" href="/style.css?v=20260516-12">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -490,8 +490,8 @@ header('Pragma: no-cache');
             <div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div>
           </section>
         </div>
-        <section class="product-text-panel product-edit-text-panel"><div class="product-section"><h2 class="section-title">Opis</h2><textarea id="edit_description" class="textarea edit-long-textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea></div><div class="product-section"><h2 class="section-title">Notatka</h2><textarea id="edit_note" class="textarea edit-long-textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea></div></section>
         <section class="product-text-panel product-edit-photo-panel"><div class="product-section"><h2 class="section-title">Podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card"><div id="edit_slot_preview_${i}" class="slot-preview">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}</div><label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*" onchange="renderEditSlotPreview(${i})"><div id="edit_image_name_${i}" class="slot-file-name hidden"></div></div>`).join('')}</div></div></section>
+        <section class="product-text-panel product-edit-text-panel"><div class="product-section"><h2 class="section-title">Opis</h2><textarea id="edit_description" class="textarea edit-long-textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea></div><div class="product-section"><h2 class="section-title">Notatka</h2><textarea id="edit_note" class="textarea edit-long-textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea></div></section>
       </div></div>`
       $('modal').classList.remove('hidden')
       const editAllInput = $('edit_images_all')
