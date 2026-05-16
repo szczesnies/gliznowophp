@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-14">
+  <link rel="stylesheet" href="/style.css?v=20260516-15">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -492,7 +492,7 @@ header('Pragma: no-cache');
         <div class="product-banner"><img src="/banner.png" alt="Maszyny Gliznowo"></div>
         <div class="product-toolbar"><div class="product-toolbar-left"><button class="btn btn-main" onclick="openDetails(${m.id})">WRÓĆ</button><button class="btn btn-dark" onclick="closeModal()">ZAMKNIJ</button></div><div class="product-meta">EDYCJA / ID ${m.id}</div></div>
         <div class="product-grid product-grid-view product-grid-edit">
-          <section class="product-gallery product-edit-gallery"><div class="product-main-photo">${main ? `<img id="editMainPhoto" src="${main}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div id="editMainPhoto" class="product-no-photo">Brak zdjęcia</div>'}<div class="photo-count">${slots.filter(Boolean).length} / 4</div></div><div class="product-thumbs edit-photo-slots">${[1,2,3,4].map((slot) => { const img = slots[slot-1]; return `<label class="edit-photo-slot" for="edit_image${slot}"><div id="edit_slot_preview_${slot}" class="edit-slot-preview">${img ? `<img src="${img}" alt="Zdjęcie ${slot}">` : '<div class="slot-empty">Pusty slot</div>'}</div><span class="edit-slot-action">Podmień zdjęcie ${slot}</span><input id="edit_image${slot}" class="input edit-slot-input" type="file" accept="image/*" onchange="renderEditSlotPreview(${slot})"><div id="edit_image_name_${slot}" class="slot-file-name hidden"></div></label>` }).join('')} </div></section>
+          <section class="product-gallery product-edit-gallery"><div class="product-main-photo">${main ? `<img id="editMainPhoto" src="${main}" alt="${escapeAttr(m.name || 'Maszyna')}">` : '<div id="editMainPhoto" class="product-no-photo">Brak zdjęcia</div>'}<div class="photo-count">${slots.filter(Boolean).length} / 4</div></div><div class="product-thumbs edit-photo-slots">${[1,2,3,4].map((slot) => { const img = slots[slot-1]; return `<label class="edit-photo-slot" for="edit_image${slot}"><span class="edit-slot-number">Zdjęcie ${slot}</span><div id="edit_slot_preview_${slot}" class="edit-slot-preview">${img ? `<img src="${img}" alt="Zdjęcie ${slot}">` : '<div class="slot-empty">Pusty slot</div>'}</div><span class="edit-slot-action">Dotknij, aby podmienić</span><input id="edit_image${slot}" class="input edit-slot-input" type="file" accept="image/*" onchange="renderEditSlotPreview(${slot})"><div id="edit_image_name_${slot}" class="slot-file-name hidden"></div></label>` }).join('')} </div></section>
           <section class="product-panel product-summary-panel">
             <div class="product-head"><div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><span class="status-pill ${m.status === 'sold' ? 'archive' : ''}">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span></div><h1 class="product-title">Edycja maszyny</h1></div>
             <div class="product-section"><div class="product-edit-grid"><input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks"><div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div></div></div>
@@ -722,7 +722,9 @@ header('Pragma: no-cache');
       const file = input?.files?.[0]
       if (!file || !preview || !name) return
       const url = URL.createObjectURL(file)
-      preview.innerHTML = `<img src="${url}" alt="Wybrane zdjęcie ${slot}" onload="URL.revokeObjectURL(this.src)">`
+      preview.innerHTML = `<img src="${url}" alt="Wybrane zdjęcie ${slot}">`
+      const main = $('editMainPhoto')
+      if (slot === 1 && main?.tagName === 'IMG') main.src = url
       name.textContent = `Wybrano: ${file.name}`
       name.classList.remove('hidden')
     }
