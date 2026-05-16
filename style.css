@@ -64,3 +64,15 @@ body{background:radial-gradient(circle at 50% -180px,rgba(234,179,8,.11),transpa
 .product-grid-edit{align-items:start}.product-edit-text-panel .product-section{padding:16px 18px}.edit-long-textarea{min-height:150px}.product-edit-photo-panel{margin-top:14px}.product-edit-photo-panel .slot-grid{margin-top:4px}.product-grid-edit .product-summary-panel{align-self:stretch}
 @media(min-width:1100px){.product-grid-edit{grid-template-columns:minmax(0,1fr) 380px}.product-edit-text-panel{margin-top:14px}.product-edit-photo-panel .slot-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:699px){.edit-long-textarea{min-height:130px}.product-edit-photo-panel{margin-top:12px}}
+
+
+/* edit-photo-slots-inline-20260516 */
+.product-edit-gallery .product-thumbs.edit-photo-slots{grid-template-columns:repeat(2,1fr)}
+.edit-photo-slot{display:grid;gap:7px;min-width:0;border:1px solid rgba(255,255,255,.07);border-radius:14px;background:#181818;padding:8px;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+.edit-photo-slot:hover{border-color:rgba(234,179,8,.55);background:#202020;transform:translateY(-1px)}
+.edit-slot-preview img,.edit-slot-preview .slot-empty{display:flex;width:100%;height:96px;align-items:center;justify-content:center;border-radius:12px;background:#242424;object-fit:cover;color:#8b8b94;font-size:12px;font-weight:850}
+.edit-slot-action{display:flex;align-items:center;justify-content:center;min-height:34px;border:1px solid rgba(234,179,8,.24);border-radius:11px;background:rgba(234,179,8,.09);color:#fde68a;font-size:11px;font-weight:900;text-align:center;text-transform:uppercase}
+.edit-slot-input{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;opacity:0!important;pointer-events:none!important}
+.product-edit-gallery .slot-file-name{margin-top:0}
+@media(min-width:700px){.product-edit-gallery .product-thumbs.edit-photo-slots{grid-template-columns:repeat(4,1fr)}.edit-slot-preview img,.edit-slot-preview .slot-empty{height:86px}}
+@media(max-width:699px){.product-edit-gallery .product-thumbs.edit-photo-slots{grid-template-columns:repeat(2,1fr)}.edit-slot-preview img,.edit-slot-preview .slot-empty{height:102px}.edit-slot-action{min-height:38px;font-size:10px}}
