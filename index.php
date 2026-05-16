@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-15">
+  <link rel="stylesheet" href="/style.css?v=20260516-16">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -496,22 +496,18 @@ header('Pragma: no-cache');
           <section class="product-panel product-summary-panel">
             <div class="product-head"><div class="product-badges"><span class="badge">#${escapeHtml(m.index_number || 'brak indeksu')}</span><span class="status-pill ${m.status === 'sold' ? 'archive' : ''}">${m.status === 'sold' ? 'Archiwum' : 'W magazynie'}</span></div><h1 class="product-title">Edycja maszyny</h1></div>
             <div class="product-section"><div class="product-edit-grid"><input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks"><div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div></div></div>
-            <div class="product-section"><h2 class="section-title">Zdjęcia</h2><label class="upload-box" for="edit_images_all"><strong>Podmień kilka zdjęć naraz</strong><span>Możesz wybrać do 4 zdjęć. Zastąpią sloty od pierwszego zdjęcia.</span></label><input id="edit_images_all" class="input file-input" type="file" accept="image/*" multiple><div id="editFilePreview" class="file-preview hidden"></div></div>
             <div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div>
           </section>
         </div>
         <section class="product-text-panel product-edit-text-panel"><div class="product-section"><h2 class="section-title">Opis</h2><textarea id="edit_description" class="textarea edit-long-textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea></div><div class="product-section"><h2 class="section-title">Notatka</h2><textarea id="edit_note" class="textarea edit-long-textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea></div></section>
       </div></div>`
       $('modal').classList.remove('hidden')
-      const editAllInput = $('edit_images_all')
-      if (editAllInput) editAllInput.onchange = renderEditImagePreview
     }
     async function saveEdit(id) {
       setLoading(true, 'Zapisuję zmiany...')
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       const form = formFromMachine(m)
       form.set('name', $('edit_name').value); form.set('index_number', $('edit_index').value); form.set('purchase_price', $('edit_purchase').value); form.set('vat_price', $('edit_vat').value); form.set('gross_price', $('edit_gross').value); form.set('description', $('edit_description').value); form.set('note', $('edit_note').value)
-      await appendCompressedImages(form, $('edit_images_all'), 'image')
       for (const i of [1,2,3,4]) await appendCompressedImages(form, $(`edit_image${i}`), 'image', i)
       form.set('history_action', 'Edycja'); form.set('history_details', 'Zaktualizowano dane maszyny.')
       const res = await api('update', { method: 'POST', body: form })
@@ -703,17 +699,12 @@ header('Pragma: no-cache');
 
     function renderCreateImagePreview() {
       $('filePreview').classList.toggle('hidden', selectedCreateImages.length === 0)
-      $('filePreview').innerHTML = selectedCreateImages.map((file, index) => `<div class="file-pill"><span>${index + 1}. ${escapeHtml(file.name)} · kompresja przed wysłaniem</span><button type="button" class="file-remove" onclick="removeCreateImage(${index})">USUŃ</button></div>`).join('')
+      $('filePreview').innerHTML = selectedCreateImages.map((file, index) => {
+        const url = URL.createObjectURL(file)
+        return `<div class="create-photo-preview"><img src="${url}" alt="Wybrane zdjęcie ${index + 1}" onload="URL.revokeObjectURL(this.src)"><div><strong>Zdjęcie ${index + 1}</strong><span>${escapeHtml(file.name)}</span></div><button type="button" class="file-remove" onclick="removeCreateImage(${index})">USUŃ</button></div>`
+      }).join('')
     }
 
-    function renderEditImagePreview() {
-      const input = $('edit_images_all')
-      const preview = $('editFilePreview')
-      if (!input || !preview) return
-      const files = Array.from(input.files || []).slice(0, 4)
-      preview.classList.toggle('hidden', files.length === 0)
-      preview.innerHTML = files.map((file, index) => `<div class="file-pill"><span>${index + 1}. ${escapeHtml(file.name)} · podmiana slotu ${index + 1}</span></div>`).join('')
-    }
 
     function renderEditSlotPreview(slot) {
       const input = $(`edit_image${slot}`)
