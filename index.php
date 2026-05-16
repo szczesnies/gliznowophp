@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-13">
+  <link rel="stylesheet" href="/style.css?v=20260516-14">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -102,7 +102,7 @@ header('Pragma: no-cache');
   <div id="loading" class="loading hidden"><div class="loading-card">Pracuję...</div></div>
 
   <script>
-    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
+    const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0, lightboxMachineId: null }
     const selectedCreateImages = []
     const preferredMode = () => window.matchMedia('(max-width: 699px)').matches ? 'cards' : 'table'
     const $ = (id) => document.getElementById(id)
@@ -461,13 +461,23 @@ header('Pragma: no-cache');
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       state.lightboxImages = [m.image1,m.image2,m.image3,m.image4].filter(Boolean)
       state.lightboxIndex = index
+      state.lightboxMachineId = id
       renderLightbox()
     }
 
     function renderLightbox() {
       const img = state.lightboxImages[state.lightboxIndex]
-      $('modal').innerHTML = `<div class="modal" onclick="closeModal()"><button class="btn btn-dark" style="position:fixed;top:14px;right:14px;z-index:2" onclick="event.stopPropagation();closeModal()">X</button><button class="btn btn-dark" style="position:fixed;left:14px;top:50%;z-index:2" onclick="event.stopPropagation();prevPhoto()">‹</button><img class="lightbox-img" src="${img}" onclick="event.stopPropagation()" alt=""><button class="btn btn-dark" style="position:fixed;right:14px;top:50%;z-index:2" onclick="event.stopPropagation();nextPhoto()">›</button><div class="badge" style="position:fixed;bottom:18px;left:50%;transform:translateX(-50%)">${state.lightboxIndex + 1}/${state.lightboxImages.length}</div></div>`
+      $('modal').innerHTML = `<div class="modal lightbox-layer" onclick="closeLightbox()"><button class="btn btn-dark lightbox-close" onclick="event.stopPropagation();closeLightbox()">X</button><button class="btn btn-dark lightbox-arrow lightbox-prev" onclick="event.stopPropagation();prevPhoto()">‹</button><img class="lightbox-img" src="${img}" onclick="event.stopPropagation()" alt=""><button class="btn btn-dark lightbox-arrow lightbox-next" onclick="event.stopPropagation();nextPhoto()">›</button><div class="badge lightbox-counter">${state.lightboxIndex + 1}/${state.lightboxImages.length}</div></div>`
       $('modal').classList.remove('hidden')
+    }
+
+    function closeLightbox() {
+      const id = state.lightboxMachineId
+      state.lightboxImages = []
+      state.lightboxIndex = 0
+      state.lightboxMachineId = null
+      if (id) openDetails(id)
+      else closeModal()
     }
 
     function nextPhoto(){ state.lightboxIndex = (state.lightboxIndex + 1) % state.lightboxImages.length; renderLightbox() }
@@ -652,7 +662,7 @@ header('Pragma: no-cache');
           break
       }
     }
-    function closeModal(){ $('modal').classList.add('hidden'); $('modal').innerHTML = '' }
+    function closeModal(){ state.lightboxImages = []; state.lightboxIndex = 0; state.lightboxMachineId = null; $('modal').classList.add('hidden'); $('modal').innerHTML = '' }
     function escapeHtml(v){ return text(v).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])) }
     function escapeAttr(v){ return escapeHtml(v).replace(/"/g, '&quot;') }
 
@@ -718,7 +728,7 @@ header('Pragma: no-cache');
     }
     $('search').oninput = () => { state.search = $('search').value; render() }
     window.addEventListener('resize', () => render())
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); if (!$('modal').classList.contains('hidden') && state.lightboxImages.length) { if (event.key === 'ArrowRight') nextPhoto(); if (event.key === 'ArrowLeft') prevPhoto() } })
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (state.lightboxImages.length) closeLightbox(); else closeModal(); return } if (!$('modal').classList.contains('hidden') && state.lightboxImages.length) { if (event.key === 'ArrowRight') nextPhoto(); if (event.key === 'ArrowLeft') prevPhoto() } })
     init()
   </script>
 </body>
