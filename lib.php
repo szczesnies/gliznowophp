@@ -161,6 +161,10 @@ function convert_uploaded_image_to_webp(string $sourcePath, string $mime, string
         return '';
     }
 
+    if ($mime === 'image/jpeg') {
+        $image = apply_image_orientation($image, jpeg_exif_orientation($sourcePath));
+    }
+
     $width = imagesx($image);
     $height = imagesy($image);
     $maxSide = 1600;
@@ -180,6 +184,91 @@ function convert_uploaded_image_to_webp(string $sourcePath, string $mime, string
     imagedestroy($image);
 
     return $saved ? $targetPath : '';
+}
+
+function jpeg_exif_orientation(string $sourcePath): int
+{
+    if (function_exists('exif_read_data')) {
+        $exif = @exif_read_data($sourcePath);
+        $orientation = (int)($exif['Orientation'] ?? 1);
+        return $orientation >= 1 && $orientation <= 8 ? $orientation : 1;
+    }
+
+    $data = @file_get_contents($sourcePath, false, null, 0, 65536);
+    if ($data === false || strlen($data) < 4 || substr($data, 0, 2) !== "\xFF\xD8") {
+        return 1;
+    }
+
+    $offset = 2;
+    $length = strlen($data);
+    while ($offset + 4 < $length) {
+        $marker = unpack('n', substr($data, $offset, 2))[1];
+        $offset += 2;
+        $segmentLength = unpack('n', substr($data, $offset, 2))[1] ?? 0;
+        if ($marker === 0xFFE1 && substr($data, $offset + 2, 4) === 'Exif') {
+            $tiff = $offset + 8;
+            $littleEndian = substr($data, $tiff, 2) === 'II';
+            $ifdOffset = read_exif_int($data, $tiff + 4, 4, $littleEndian);
+            $ifd = $tiff + $ifdOffset;
+            $entries = read_exif_int($data, $ifd, 2, $littleEndian);
+            for ($i = 0; $i < $entries; $i++) {
+                $entry = $ifd + 2 + $i * 12;
+                if ($entry + 12 > $length) {
+                    break;
+                }
+                if (read_exif_int($data, $entry, 2, $littleEndian) === 0x0112) {
+                    $orientation = read_exif_int($data, $entry + 8, 2, $littleEndian);
+                    return $orientation >= 1 && $orientation <= 8 ? $orientation : 1;
+                }
+            }
+            return 1;
+        }
+        if (($marker & 0xFF00) !== 0xFF00 || $segmentLength < 2) {
+            break;
+        }
+        $offset += $segmentLength;
+    }
+
+    return 1;
+}
+
+function read_exif_int(string $data, int $offset, int $bytes, bool $littleEndian): int
+{
+    $chunk = substr($data, $offset, $bytes);
+    if (strlen($chunk) < $bytes) {
+        return 0;
+    }
+    if ($bytes === 2) {
+        return unpack($littleEndian ? 'v' : 'n', $chunk)[1];
+    }
+    return unpack($littleEndian ? 'V' : 'N', $chunk)[1];
+}
+
+function apply_image_orientation($image, int $orientation)
+{
+    if ($orientation === 2 && function_exists('imageflip')) {
+        imageflip($image, IMG_FLIP_HORIZONTAL);
+    } elseif ($orientation === 3) {
+        $image = imagerotate($image, 180, 0) ?: $image;
+    } elseif ($orientation === 4 && function_exists('imageflip')) {
+        imageflip($image, IMG_FLIP_VERTICAL);
+    } elseif ($orientation === 5) {
+        if (function_exists('imageflip')) {
+            imageflip($image, IMG_FLIP_VERTICAL);
+        }
+        $image = imagerotate($image, 270, 0) ?: $image;
+    } elseif ($orientation === 6) {
+        $image = imagerotate($image, 270, 0) ?: $image;
+    } elseif ($orientation === 7) {
+        if (function_exists('imageflip')) {
+            imageflip($image, IMG_FLIP_HORIZONTAL);
+        }
+        $image = imagerotate($image, 270, 0) ?: $image;
+    } elseif ($orientation === 8) {
+        $image = imagerotate($image, 90, 0) ?: $image;
+    }
+
+    return $image;
 }
 
 function delete_upload(?string $url): void

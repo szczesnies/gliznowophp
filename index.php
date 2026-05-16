@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-5">
+  <link rel="stylesheet" href="/style.css?v=20260516-6">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -519,11 +519,13 @@ header('Pragma: no-cache');
       const quality = 0.82
       let sourceHandle = null
       try {
+        const originalOrientation = await readJpegOrientation(file)
         const loaded = await loadCanvasSource(file)
         sourceHandle = loaded.source
-        const orientation = loaded.alreadyOriented ? 1 : await readJpegOrientation(file)
         const sourceWidth = sourceHandle.width || sourceHandle.naturalWidth
         const sourceHeight = sourceHandle.height || sourceHandle.naturalHeight
+        const browserAlreadyRotated = originalOrientation >= 5 && originalOrientation <= 8 && sourceHeight > sourceWidth
+        const orientation = browserAlreadyRotated || loaded.alreadyOriented ? 1 : originalOrientation
         const rotated = orientation >= 5 && orientation <= 8
         const orientedWidth = rotated ? sourceHeight : sourceWidth
         const orientedHeight = rotated ? sourceWidth : sourceHeight
@@ -548,7 +550,6 @@ header('Pragma: no-cache');
         if (sourceHandle && typeof sourceHandle.close === 'function') sourceHandle.close()
       }
     }
-
     async function loadCanvasSource(file) {
       if ('createImageBitmap' in window) {
         try {
