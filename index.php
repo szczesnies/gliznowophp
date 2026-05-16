@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-9">
+  <link rel="stylesheet" href="/style.css?v=20260516-10">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -486,7 +486,7 @@ header('Pragma: no-cache');
             <input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks">
             <div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
             <textarea id="edit_description" class="textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea><textarea id="edit_note" class="textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea>
-          </div></div><div class="product-section"><h2 class="section-title">Zdjęcia</h2><label class="upload-box" for="edit_images_all"><strong>Podmień kilka zdjęć naraz</strong><span>Możesz wybrać do 4 zdjęć. Zastąpią sloty od pierwszego zdjęcia.</span></label><input id="edit_images_all" class="input file-input" type="file" accept="image/*" multiple><div id="editFilePreview" class="file-preview hidden"></div><h2 class="section-title slot-section-title">Albo podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}<label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*"></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
+          </div></div><div class="product-section"><h2 class="section-title">Zdjęcia</h2><label class="upload-box" for="edit_images_all"><strong>Podmień kilka zdjęć naraz</strong><span>Możesz wybrać do 4 zdjęć. Zastąpią sloty od pierwszego zdjęcia.</span></label><input id="edit_images_all" class="input file-input" type="file" accept="image/*" multiple><div id="editFilePreview" class="file-preview hidden"></div><h2 class="section-title slot-section-title">Albo podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card"><div id="edit_slot_preview_${i}" class="slot-preview">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}</div><label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*" onchange="renderEditSlotPreview(${i})"><div id="edit_image_name_${i}" class="slot-file-name hidden"></div></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
         </div>
       </div></div>`
       $('modal').classList.remove('hidden')
@@ -701,6 +701,18 @@ header('Pragma: no-cache');
       const files = Array.from(input.files || []).slice(0, 4)
       preview.classList.toggle('hidden', files.length === 0)
       preview.innerHTML = files.map((file, index) => `<div class="file-pill"><span>${index + 1}. ${escapeHtml(file.name)} · podmiana slotu ${index + 1}</span></div>`).join('')
+    }
+
+    function renderEditSlotPreview(slot) {
+      const input = $(`edit_image${slot}`)
+      const preview = $(`edit_slot_preview_${slot}`)
+      const name = $(`edit_image_name_${slot}`)
+      const file = input?.files?.[0]
+      if (!file || !preview || !name) return
+      const url = URL.createObjectURL(file)
+      preview.innerHTML = `<img src="${url}" alt="Wybrane zdjęcie ${slot}" onload="URL.revokeObjectURL(this.src)">`
+      name.textContent = `Wybrano: ${file.name}`
+      name.classList.remove('hidden')
     }
     $('search').oninput = () => { state.search = $('search').value; render() }
     window.addEventListener('resize', () => render())
