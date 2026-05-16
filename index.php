@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-3">
+  <link rel="stylesheet" href="/style.css?v=20260516-4">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -518,15 +518,29 @@ header('Pragma: no-cache');
       const maxSide = 1600
       const quality = 0.82
       try {
-        const bitmap = await loadImageBitmap(file)
-        const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
-        const width = Math.max(1, Math.round(bitmap.width * scale))
-        const height = Math.max(1, Math.round(bitmap.height * scale))
+        const image = await loadImageElement(file)
+        const orientation = await readJpegOrientation(file)
+        const browserAppliedOrientation = orientation >= 5 && image.naturalHeight > image.naturalWidth
+        const needsRotation = orientation >= 5 && !browserAppliedOrientation
+        const sourceWidth = image.naturalWidth || image.width
+        const sourceHeight = image.naturalHeight || image.height
+        const orientedWidth = needsRotation ? sourceHeight : sourceWidth
+        const orientedHeight = needsRotation ? sourceWidth : sourceHeight
+        const scale = Math.min(1, maxSide / Math.max(orientedWidth, orientedHeight))
+        const width = Math.max(1, Math.round(orientedWidth * scale))
+        const height = Math.max(1, Math.round(orientedHeight * scale))
         const canvas = document.createElement('canvas')
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext('2d')
-        ctx.drawImage(bitmap, 0, 0, width, height)
+        ctx.save()
+        if (needsRotation) {
+          applyExifOrientation(ctx, orientation, width, height)
+          ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight, 0, 0, height, width)
+        } else {
+          ctx.drawImage(image, 0, 0, width, height)
+        }
+        ctx.restore()
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', quality))
         if (!blob) return file
         const base = file.name.replace(/\.[^.]+$/, '') || 'zdjecie'
@@ -536,8 +550,7 @@ header('Pragma: no-cache');
       }
     }
 
-    async function loadImageBitmap(file) {
-      if ('createImageBitmap' in window) return createImageBitmap(file)
+    async function loadImageElement(file) {
       const url = URL.createObjectURL(file)
       try {
         const img = await new Promise((resolve, reject) => {
@@ -549,6 +562,54 @@ header('Pragma: no-cache');
         return img
       } finally {
         URL.revokeObjectURL(url)
+      }
+    }
+
+    async function readJpegOrientation(file) {
+      if (!file || !/^image\/jpe?g$/i.test(file.type)) return 1
+      const buffer = await file.slice(0, 65536).arrayBuffer()
+      const view = new DataView(buffer)
+      if (view.byteLength < 4 || view.getUint16(0, false) !== 0xffd8) return 1
+      let offset = 2
+      while (offset + 4 < view.byteLength) {
+        const marker = view.getUint16(offset, false)
+        offset += 2
+        if (marker === 0xffe1) {
+          const exifStart = offset + 2
+          if (getAscii(view, exifStart, 4) !== 'Exif') return 1
+          const tiff = exifStart + 6
+          const little = view.getUint16(tiff, false) === 0x4949
+          const firstIfd = tiff + view.getUint32(tiff + 4, little)
+          const entries = view.getUint16(firstIfd, little)
+          for (let i = 0; i < entries; i++) {
+            const entry = firstIfd + 2 + i * 12
+            if (entry + 12 > view.byteLength) break
+            if (view.getUint16(entry, little) === 0x0112) return view.getUint16(entry + 8, little)
+          }
+          return 1
+        }
+        if ((marker & 0xff00) !== 0xff00) break
+        offset += view.getUint16(offset, false)
+      }
+      return 1
+    }
+
+    function getAscii(view, start, length) {
+      let value = ''
+      for (let i = 0; i < length; i++) value += String.fromCharCode(view.getUint8(start + i))
+      return value
+    }
+
+    function applyExifOrientation(ctx, orientation, width, height) {
+      if (orientation === 6) {
+        ctx.translate(width, 0)
+        ctx.rotate(Math.PI / 2)
+      } else if (orientation === 8) {
+        ctx.translate(0, height)
+        ctx.rotate(-Math.PI / 2)
+      } else if (orientation === 3) {
+        ctx.translate(width, height)
+        ctx.rotate(Math.PI)
       }
     }
     function closeModal(){ $('modal').classList.add('hidden'); $('modal').innerHTML = '' }
