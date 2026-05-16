@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-8">
+  <link rel="stylesheet" href="/style.css?v=20260516-9">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -22,9 +22,9 @@ header('Pragma: no-cache');
       <h1>Maszyny Gliznowo</h1>
       <p class="muted">Wewnętrzny system magazynowy</p>
       <div class="row" style="margin-top:18px">
-        <input id="loginEmail" class="input" type="email" autocomplete="username" placeholder="Email">
+        <input id="loginEmail" class="input" type="email" autocomplete="username" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Email">
         <div style="position:relative">
-          <input id="loginPassword" class="input" type="password" autocomplete="current-password" placeholder="Hasło" style="padding-right:86px">
+          <input id="loginPassword" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Hasło" style="padding-right:86px">
           <button id="togglePassword" class="btn btn-dark btn-small" style="position:absolute;right:6px;top:5px" type="button">POKAŻ</button>
         </div>
         <p id="loginError" class="error-text"></p>
@@ -103,6 +103,7 @@ header('Pragma: no-cache');
 
   <script>
     const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
+    const selectedCreateImages = []
     const preferredMode = () => window.matchMedia('(max-width: 699px)').matches ? 'cards' : 'table'
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
@@ -148,7 +149,7 @@ header('Pragma: no-cache');
       const res = await api('login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: $('loginEmail').value, password: $('loginPassword').value }),
+        body: JSON.stringify({ email: $('loginEmail').value.trim(), password: $('loginPassword').value }),
       })
       if (!res.ok) {
         $('loginError').textContent = 'Nieprawidłowy email lub hasło'
@@ -338,14 +339,14 @@ header('Pragma: no-cache');
       try {
         const form = new FormData()
         for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) form.append(id, $(id).value)
-        await appendCompressedImages(form, $('images'), 'image')
+        await appendCompressedImages(form, selectedCreateImages, 'image')
         const res = await api('create', { method: 'POST', body: form })
         const data = await res.json()
         if (!res.ok) return toast(data.error || 'Nie udało się zapisać.', 'error')
         for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) $(id).value = ''
         $('images').value = ''
-        $('filePreview').innerHTML = ''
-        $('filePreview').classList.add('hidden')
+        selectedCreateImages.length = 0
+        renderCreateImagePreview()
         $('formPanel').classList.add('hidden')
         toast('Maszyna dodana.')
         await loadMachines()
@@ -485,10 +486,12 @@ header('Pragma: no-cache');
             <input id="edit_name" class="input" value="${escapeAttr(m.name)}" placeholder="Nazwa"><input id="edit_index" class="input" value="${escapeAttr(m.index_number)}" placeholder="Indeks">
             <div class="row price-row"><input id="edit_purchase" class="input" value="${escapeAttr(m.purchase_price)}" placeholder="Cena zakupu"><input id="edit_vat" class="input" value="${escapeAttr(m.vat_price)}" placeholder="VAT"><input id="edit_gross" class="input" value="${escapeAttr(m.gross_price)}" placeholder="Cena"></div>
             <textarea id="edit_description" class="textarea" placeholder="Opis">${escapeHtml(m.description)}</textarea><textarea id="edit_note" class="textarea" placeholder="Notatka">${escapeHtml(m.note)}</textarea>
-          </div></div><div class="product-section"><h2 class="section-title">Podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}<label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*"></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
+          </div></div><div class="product-section"><h2 class="section-title">Zdjęcia</h2><label class="upload-box" for="edit_images_all"><strong>Podmień kilka zdjęć naraz</strong><span>Możesz wybrać do 4 zdjęć. Zastąpią sloty od pierwszego zdjęcia.</span></label><input id="edit_images_all" class="input file-input" type="file" accept="image/*" multiple><div id="editFilePreview" class="file-preview hidden"></div><h2 class="section-title slot-section-title">Albo podmień konkretne zdjęcie</h2><div class="slot-grid">${[1,2,3,4].map((i) => `<div class="slot-card">${slots[i-1] ? `<img src="${slots[i-1]}" alt="Zdjęcie ${i}">` : '<div class="slot-empty">Brak zdjęcia</div>'}<label>Zdjęcie ${i}</label><input id="edit_image${i}" class="input" type="file" accept="image/*"></div>`).join('')}</div></div><div class="product-section"><div class="product-edit-actions"><button class="btn btn-green" onclick="saveEdit(${m.id})">ZAPISZ ZMIANY</button><button class="btn btn-dark" onclick="openDetails(${m.id})">ANULUJ</button></div></div></section>
         </div>
       </div></div>`
       $('modal').classList.remove('hidden')
+      const editAllInput = $('edit_images_all')
+      if (editAllInput) editAllInput.onchange = renderEditImagePreview
     }
 
     async function saveEdit(id) {
@@ -496,6 +499,7 @@ header('Pragma: no-cache');
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       const form = formFromMachine(m)
       form.set('name', $('edit_name').value); form.set('index_number', $('edit_index').value); form.set('purchase_price', $('edit_purchase').value); form.set('vat_price', $('edit_vat').value); form.set('gross_price', $('edit_gross').value); form.set('description', $('edit_description').value); form.set('note', $('edit_note').value)
+      await appendCompressedImages(form, $('edit_images_all'), 'image')
       for (const i of [1,2,3,4]) await appendCompressedImages(form, $(`edit_image${i}`), 'image', i)
       form.set('history_action', 'Edycja'); form.set('history_details', 'Zaktualizowano dane maszyny.')
       const res = await api('update', { method: 'POST', body: form })
@@ -505,11 +509,12 @@ header('Pragma: no-cache');
     }
 
     async function appendCompressedImages(form, input, prefix, fixedIndex = null) {
-      const files = Array.from(input?.files || []).slice(0, fixedIndex ? 1 : 4)
+      const sourceFiles = Array.isArray(input) ? input : Array.from(input?.files || [])
+      const files = sourceFiles.slice(0, fixedIndex ? 1 : 4)
       for (let i = 0; i < files.length; i++) {
         const slot = fixedIndex || i + 1
         const file = await compressImage(files[i])
-        form.append(`${prefix}${slot}`, file, file.name)
+        form.set(`${prefix}${slot}`, file, file.name)
       }
     }
 
@@ -666,9 +671,36 @@ header('Pragma: no-cache');
     $('toggleForm').onclick = () => $('formPanel').classList.toggle('hidden')
     $('saveNew').onclick = createMachine
     $('images').onchange = () => {
-      const files = Array.from($('images').files || []).slice(0, 4)
-      $('filePreview').classList.toggle('hidden', files.length === 0)
-      $('filePreview').innerHTML = files.map((file, index) => `<div class="file-pill">${index + 1}. ${escapeHtml(file.name)} · kompresja przed wysłaniem</div>`).join('')
+      addCreateImages(Array.from($('images').files || []))
+      $('images').value = ''
+    }
+
+    function addCreateImages(files) {
+      for (const file of files) {
+        if (selectedCreateImages.length >= 4) break
+        selectedCreateImages.push(file)
+      }
+      if (files.length && selectedCreateImages.length >= 4) toast('Wybrano maksymalnie 4 zdjęcia.')
+      renderCreateImagePreview()
+    }
+
+    function removeCreateImage(index) {
+      selectedCreateImages.splice(index, 1)
+      renderCreateImagePreview()
+    }
+
+    function renderCreateImagePreview() {
+      $('filePreview').classList.toggle('hidden', selectedCreateImages.length === 0)
+      $('filePreview').innerHTML = selectedCreateImages.map((file, index) => `<div class="file-pill"><span>${index + 1}. ${escapeHtml(file.name)} · kompresja przed wysłaniem</span><button type="button" class="file-remove" onclick="removeCreateImage(${index})">USUŃ</button></div>`).join('')
+    }
+
+    function renderEditImagePreview() {
+      const input = $('edit_images_all')
+      const preview = $('editFilePreview')
+      if (!input || !preview) return
+      const files = Array.from(input.files || []).slice(0, 4)
+      preview.classList.toggle('hidden', files.length === 0)
+      preview.innerHTML = files.map((file, index) => `<div class="file-pill"><span>${index + 1}. ${escapeHtml(file.name)} · podmiana slotu ${index + 1}</span></div>`).join('')
     }
     $('search').oninput = () => { state.search = $('search').value; render() }
     window.addEventListener('resize', () => render())
