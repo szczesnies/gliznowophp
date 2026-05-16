@@ -19,7 +19,8 @@ const APP_USERS = [
     // ['email' => 'pracownik@gliznowo.pl', 'password' => 'drugie-haslo'],
 ];
 
-const MAX_IMAGE_SIZE = 5242880; // 5 MB
+const MAX_IMAGE_SIZE = 10485760; // 10 MB, limit awaryjny bez konwersji
+const MAX_SOURCE_IMAGE_SIZE = 26214400; // 25 MB, oryginał przed konwersją
 const UPLOAD_DIR = __DIR__ . '/uploads/machines';
 const UPLOAD_URL = '/uploads/machines';
 

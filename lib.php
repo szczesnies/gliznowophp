@@ -93,12 +93,17 @@ function save_upload(string $field): string
     }
 
     $file = $_FILES[$field];
-    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+    $errorCode = (int)($file['error'] ?? UPLOAD_ERR_OK);
+    if ($errorCode !== UPLOAD_ERR_OK) {
+        if (in_array($errorCode, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            throw new RuntimeException('Zdjęcie jest za duże dla limitu serwera. Spróbuj wybrać mniejsze zdjęcie albo zmniejszyć je w telefonie przed dodaniem.');
+        }
         throw new RuntimeException('Nie udało się wysłać zdjęcia.');
     }
 
-    if (($file['size'] ?? 0) > MAX_IMAGE_SIZE) {
-        throw new RuntimeException('Zdjęcie jest za duże. Maksymalny rozmiar to 5 MB.');
+    $sourceLimit = defined('MAX_SOURCE_IMAGE_SIZE') ? (int)MAX_SOURCE_IMAGE_SIZE : max((int)MAX_IMAGE_SIZE, 25 * 1024 * 1024);
+    if (($file['size'] ?? 0) > $sourceLimit) {
+        throw new RuntimeException('Zdjęcie jest za duże. Maksymalny rozmiar zdjęcia źródłowego to ' . (int)round($sourceLimit / 1024 / 1024) . ' MB.');
     }
 
     $tmp = (string)$file['tmp_name'];
@@ -130,6 +135,10 @@ function save_upload(string $field): string
 
     $filename = $baseName . '.' . $allowed[$mime];
     $target = UPLOAD_DIR . '/' . $filename;
+
+    if (($file['size'] ?? 0) > MAX_IMAGE_SIZE) {
+        throw new RuntimeException('Serwer nie ma konwersji zdjęć, a plik po wysłaniu jest za duży. Wybierz mniejsze zdjęcie.');
+    }
 
     if (!move_uploaded_file($tmp, $target)) {
         throw new RuntimeException('Nie udało się zapisać zdjęcia.');

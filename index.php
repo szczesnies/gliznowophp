@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-2">
+  <link rel="stylesheet" href="/style.css?v=20260516-3">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -338,7 +338,7 @@ header('Pragma: no-cache');
       try {
         const form = new FormData()
         for (const id of ['name','index_number','purchase_price','vat_price','gross_price','description','note']) form.append(id, $(id).value)
-        Array.from($('images').files || []).slice(0, 4).forEach((file, i) => form.append(`image${i + 1}`, file))
+        await appendCompressedImages(form, $('images'), 'image')
         const res = await api('create', { method: 'POST', body: form })
         const data = await res.json()
         if (!res.ok) return toast(data.error || 'Nie udało się zapisać.', 'error')
@@ -496,7 +496,7 @@ header('Pragma: no-cache');
       const m = state.machines.find((x) => Number(x.id) === Number(id))
       const form = formFromMachine(m)
       form.set('name', $('edit_name').value); form.set('index_number', $('edit_index').value); form.set('purchase_price', $('edit_purchase').value); form.set('vat_price', $('edit_vat').value); form.set('gross_price', $('edit_gross').value); form.set('description', $('edit_description').value); form.set('note', $('edit_note').value)
-      for (const i of [1,2,3,4]) if ($(`edit_image${i}`).files[0]) form.append(`image${i}`, $(`edit_image${i}`).files[0])
+      for (const i of [1,2,3,4]) await appendCompressedImages(form, $(`edit_image${i}`), 'image', i)
       form.set('history_action', 'Edycja'); form.set('history_details', 'Zaktualizowano dane maszyny.')
       const res = await api('update', { method: 'POST', body: form })
       const data = await res.json()
@@ -504,6 +504,53 @@ header('Pragma: no-cache');
       closeModal(); toast('Zapisano.'); await loadMachines(); setLoading(false)
     }
 
+    async function appendCompressedImages(form, input, prefix, fixedIndex = null) {
+      const files = Array.from(input?.files || []).slice(0, fixedIndex ? 1 : 4)
+      for (let i = 0; i < files.length; i++) {
+        const slot = fixedIndex || i + 1
+        const file = await compressImage(files[i])
+        form.append(`${prefix}${slot}`, file, file.name)
+      }
+    }
+
+    async function compressImage(file) {
+      if (!file || !file.type.startsWith('image/')) return file
+      const maxSide = 1600
+      const quality = 0.82
+      try {
+        const bitmap = await loadImageBitmap(file)
+        const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+        const width = Math.max(1, Math.round(bitmap.width * scale))
+        const height = Math.max(1, Math.round(bitmap.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(bitmap, 0, 0, width, height)
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', quality))
+        if (!blob) return file
+        const base = file.name.replace(/\.[^.]+$/, '') || 'zdjecie'
+        return new File([blob], `${base}.webp`, { type: 'image/webp', lastModified: Date.now() })
+      } catch {
+        return file
+      }
+    }
+
+    async function loadImageBitmap(file) {
+      if ('createImageBitmap' in window) return createImageBitmap(file)
+      const url = URL.createObjectURL(file)
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const image = new Image()
+          image.onload = () => resolve(image)
+          image.onerror = reject
+          image.src = url
+        })
+        return img
+      } finally {
+        URL.revokeObjectURL(url)
+      }
+    }
     function closeModal(){ $('modal').classList.add('hidden'); $('modal').innerHTML = '' }
     function escapeHtml(v){ return text(v).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])) }
     function escapeAttr(v){ return escapeHtml(v).replace(/"/g, '&quot;') }
@@ -521,7 +568,7 @@ header('Pragma: no-cache');
     $('images').onchange = () => {
       const files = Array.from($('images').files || []).slice(0, 4)
       $('filePreview').classList.toggle('hidden', files.length === 0)
-      $('filePreview').innerHTML = files.map((file, index) => `<div class="file-pill">${index + 1}. ${escapeHtml(file.name)}</div>`).join('')
+      $('filePreview').innerHTML = files.map((file, index) => `<div class="file-pill">${index + 1}. ${escapeHtml(file.name)} · kompresja przed wysłaniem</div>`).join('')
     }
     $('search').oninput = () => { state.search = $('search').value; render() }
     window.addEventListener('resize', () => render())
