@@ -36,8 +36,7 @@ function session_cookie_options(int $lifetime = null): array
 {
     $lifetime ??= session_lifetime_seconds();
     return [
-        'expires' => $lifetime > 0 ? time() + $lifetime : 0,
-        'lifetime' => $lifetime,
+        'lifetime' => max(0, $lifetime),
         'path' => '/',
         'secure' => is_secure_request(),
         'httponly' => true,
@@ -60,7 +59,13 @@ function forget_login_session(): void
         return;
     }
 
-    setcookie(session_name(), '', session_cookie_options(-3600));
+    setcookie(session_name(), '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => is_secure_request(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
 function db(): PDO
