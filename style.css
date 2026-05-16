@@ -102,3 +102,10 @@ body{background:radial-gradient(circle at 50% -180px,rgba(234,179,8,.11),transpa
 .create-photo-preview strong{display:block;color:#fde68a;font-size:11px;font-weight:950;text-transform:uppercase}
 .create-photo-preview span{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d7d7dd;font-size:11px;font-weight:700}
 @media(max-width:699px){.file-preview{grid-template-columns:1fr}.create-photo-preview{grid-template-columns:82px minmax(0,1fr) auto;padding:9px}.create-photo-preview img{width:82px;height:64px}.create-photo-preview span{font-size:12px}}
+
+
+/* create-description-height-20260516 */
+.create-text-block{display:flex;flex-direction:column}
+.create-text-block #description{min-height:154px;flex:1}
+.create-text-block #note{min-height:78px;margin-top:10px}
+@media(max-width:699px){.create-text-block #description{min-height:170px}.create-text-block #note{min-height:104px}}
