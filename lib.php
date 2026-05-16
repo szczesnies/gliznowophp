@@ -44,13 +44,25 @@ function session_cookie_options(int $lifetime = null): array
     ];
 }
 
+function persistent_cookie_options(int $lifetime = null): array
+{
+    $lifetime ??= session_lifetime_seconds();
+    return [
+        'expires' => time() + max(0, $lifetime),
+        'path' => '/',
+        'secure' => is_secure_request(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ];
+}
+
 function remember_login_session(): void
 {
     if (headers_sent() || session_status() !== PHP_SESSION_ACTIVE || session_id() === '') {
         return;
     }
 
-    setcookie(session_name(), session_id(), session_cookie_options());
+    setcookie(session_name(), session_id(), persistent_cookie_options());
 }
 
 function forget_login_session(): void
