@@ -114,6 +114,15 @@ function clean_text(mixed $value, int $max = 255): string
     return mb_substr($text, 0, $max, 'UTF-8');
 }
 
+function clean_multiline_text(mixed $value, int $max = 5000): string
+{
+    $text = trim((string)($value ?? ''));
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    $text = preg_replace('/[^\S\n]+/u', ' ', $text) ?? '';
+    $text = preg_replace('/\n{4,}/u', "\n\n\n", $text) ?? '';
+    return mb_substr($text, 0, $max, 'UTF-8');
+}
+
 function require_auth(): void
 {
     if (empty($_SESSION['user_email'])) {

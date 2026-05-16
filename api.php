@@ -55,8 +55,8 @@ try {
             'purchase_price' => clean_text($_POST['purchase_price'] ?? '', 100),
             'vat_price' => clean_text($_POST['vat_price'] ?? '', 100),
             'gross_price' => clean_text($_POST['gross_price'] ?? '', 100),
-            'description' => clean_text($_POST['description'] ?? '', 5000),
-            'note' => clean_text($_POST['note'] ?? '', 2000),
+            'description' => clean_multiline_text($_POST['description'] ?? '', 5000),
+            'note' => clean_multiline_text($_POST['note'] ?? '', 2000),
         ];
 
         if ($data['name'] === '') {
@@ -102,8 +102,8 @@ try {
             'purchase_price' => clean_text($_POST['purchase_price'] ?? $old['purchase_price'], 100),
             'vat_price' => clean_text($_POST['vat_price'] ?? $old['vat_price'], 100),
             'gross_price' => clean_text($_POST['gross_price'] ?? $old['gross_price'], 100),
-            'description' => clean_text($_POST['description'] ?? $old['description'], 5000),
-            'note' => clean_text($_POST['note'] ?? $old['note'], 2000),
+            'description' => clean_multiline_text($_POST['description'] ?? $old['description'], 5000),
+            'note' => clean_multiline_text($_POST['note'] ?? $old['note'], 2000),
             'status' => validate_status((string)($_POST['status'] ?? $old['status'])),
         ];
 
