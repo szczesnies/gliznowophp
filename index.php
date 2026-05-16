@@ -18,7 +18,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-i
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-21">
+  <link rel="stylesheet" href="/style.css?v=20260516-22">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">

@@ -109,3 +109,8 @@ body{background:radial-gradient(circle at 50% -180px,rgba(234,179,8,.11),transpa
 .create-text-block #description{min-height:154px;flex:1}
 .create-text-block #note{min-height:78px;margin-top:10px}
 @media(max-width:699px){.create-text-block #description{min-height:170px}.create-text-block #note{min-height:104px}}
+
+/* banner-crop-tune-20260516 */
+.banner img{height:clamp(184px,18vw,260px);object-fit:cover;object-position:50% 43%}
+.product-banner img{height:clamp(164px,13.5vw,220px);object-fit:cover;object-position:50% 43%}
+@media(max-width:699px){.banner img{height:172px;object-position:44% 43%}.product-banner img{height:156px;object-position:44% 43%}}
