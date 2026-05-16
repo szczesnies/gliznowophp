@@ -118,8 +118,17 @@ function save_upload(string $field): string
         throw new RuntimeException('Nie udało się utworzyć katalogu zdjęć.');
     }
 
-    $name = preg_replace('/[^a-zA-Z0-9.-]/', '-', (string)($file['name'] ?? 'image')) ?: 'image';
-    $filename = time() . '-' . bin2hex(random_bytes(8)) . '-' . $name . '.' . $allowed[$mime];
+    $safeName = preg_replace('/[^a-zA-Z0-9.-]/', '-', pathinfo((string)($file['name'] ?? 'image'), PATHINFO_FILENAME)) ?: 'image';
+    $baseName = time() . '-' . bin2hex(random_bytes(8)) . '-' . $safeName;
+
+    if (function_exists('imagewebp')) {
+        $converted = convert_uploaded_image_to_webp($tmp, $mime, UPLOAD_DIR . '/' . $baseName . '.webp');
+        if ($converted !== '') {
+            return UPLOAD_URL . '/' . basename($converted);
+        }
+    }
+
+    $filename = $baseName . '.' . $allowed[$mime];
     $target = UPLOAD_DIR . '/' . $filename;
 
     if (!move_uploaded_file($tmp, $target)) {
@@ -127,6 +136,41 @@ function save_upload(string $field): string
     }
 
     return UPLOAD_URL . '/' . $filename;
+}
+
+function convert_uploaded_image_to_webp(string $sourcePath, string $mime, string $targetPath): string
+{
+    $image = match ($mime) {
+        'image/jpeg' => function_exists('imagecreatefromjpeg') ? @imagecreatefromjpeg($sourcePath) : false,
+        'image/png' => function_exists('imagecreatefrompng') ? @imagecreatefrompng($sourcePath) : false,
+        'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sourcePath) : false,
+        'image/gif' => function_exists('imagecreatefromgif') ? @imagecreatefromgif($sourcePath) : false,
+        default => false,
+    };
+
+    if (!$image) {
+        return '';
+    }
+
+    $width = imagesx($image);
+    $height = imagesy($image);
+    $maxSide = 1600;
+    $scale = min(1, $maxSide / max($width, $height));
+    $newWidth = max(1, (int)round($width * $scale));
+    $newHeight = max(1, (int)round($height * $scale));
+
+    $canvas = imagecreatetruecolor($newWidth, $newHeight);
+    imagealphablending($canvas, false);
+    imagesavealpha($canvas, true);
+    $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+    imagefilledrectangle($canvas, 0, 0, $newWidth, $newHeight, $transparent);
+    imagecopyresampled($canvas, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+    $saved = imagewebp($canvas, $targetPath, 82);
+    imagedestroy($canvas);
+    imagedestroy($image);
+
+    return $saved ? $targetPath : '';
 }
 
 function delete_upload(?string $url): void

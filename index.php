@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260515-12">
+  <link rel="stylesheet" href="/style.css?v=20260516-1">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -40,19 +40,17 @@ header('Pragma: no-cache');
         <button id="activeTab" class="btn btn-dark active">MAGAZYN</button>
         <button id="archiveTab" class="btn btn-dark">ARCHIWUM</button>
       </div>
-      <div class="searchbar">
-        <input id="search" class="input" type="search" autocomplete="off" placeholder="Szukaj po nazwie lub indeksie">
-      </div>
       <div class="actions">
-        <button id="cardMode" class="btn btn-dark btn-small">Kafelki</button>
-        <button id="tableMode" class="btn btn-main btn-small">Tabela</button>
         <button id="logoutBtn" class="btn btn-red">WYLOGUJ</button>
       </div>
     </section>
 
     <div class="headline">
-      <div><h1 id="headline">Maszyny w magazynie</h1><span id="count" class="badge">Ilość: 0</span></div>
-      <button id="toggleForm" class="btn btn-main">+ DODAJ MASZYNĘ</button>
+      <div class="headline-title"><h1 id="headline">Maszyny w magazynie</h1><span id="count" class="badge">Ilość: 0</span></div>
+      <div class="headline-tools">
+        <button id="toggleForm" class="btn btn-main">+ DODAJ MASZYNĘ</button>
+        <div class="searchbar"><input id="search" class="input" type="search" autocomplete="off" placeholder="Szukaj po nazwie lub indeksie"></div>
+      </div>
     </div>
 
     <section class="stats hidden" aria-hidden="true">
@@ -74,7 +72,8 @@ header('Pragma: no-cache');
               <input id="vat_price" class="input" placeholder="VAT">
               <input id="gross_price" class="input" placeholder="Cena">
             </div>
-            <input id="images" class="input" type="file" accept="image/*" multiple>
+            <label class="upload-box" for="images"><strong>Dodaj zdjęcia</strong><span>Maksymalnie 4 zdjęcia. Zostaną automatycznie zmniejszone.</span></label>
+            <input id="images" class="input file-input" type="file" accept="image/*" multiple>
             <div id="filePreview" class="file-preview hidden"></div>
           </div>
         </div>
@@ -104,6 +103,7 @@ header('Pragma: no-cache');
 
   <script>
     const state = { machines: [], view: 'available', mode: 'table', sortMode: 'newest', search: '', editingId: null, edit: {}, lightboxImages: [], lightboxIndex: 0 }
+    const preferredMode = () => window.matchMedia('(max-width: 699px)').matches ? 'cards' : 'table'
     const $ = (id) => document.getElementById(id)
     const price = (v) => v ? `${v} zł` : '-'
     const text = (v) => String(v ?? '')
@@ -253,10 +253,9 @@ header('Pragma: no-cache');
       $('archiveTab').classList.toggle('active', state.view === 'sold')
       $('mobileActive').classList.toggle('active', state.view === 'available')
       $('mobileArchive').classList.toggle('active', state.view === 'sold')
+      state.mode = preferredMode()
       $('tableBox').classList.toggle('hidden', state.mode !== 'table')
       $('cards').classList.toggle('hidden', state.mode !== 'cards')
-      $('tableMode').classList.toggle('btn-main', state.mode === 'table')
-      $('cardMode').classList.toggle('btn-main', state.mode === 'cards')
       updateSortMarkers()
       const rows = filtered()
       $('count').textContent = `Ilość: ${rows.length}`
@@ -304,8 +303,7 @@ header('Pragma: no-cache');
     }
 
     function actions(m) {
-      return `<button class="btn btn-dark btn-small" onclick="event.stopPropagation(); openDetails(${m.id})">PODGLĄD</button>
-        <button class="btn btn-dark btn-small" onclick="event.stopPropagation(); startQuickEdit(mById(${m.id}))">EDYTUJ</button>
+      return `<button class="btn btn-dark btn-small" onclick="event.stopPropagation(); startQuickEdit(mById(${m.id}))">EDYTUJ</button>
         ${state.view === 'available'
           ? `<button class="btn btn-main btn-small" onclick="event.stopPropagation(); setStatus(${m.id}, 'sold')">ARCHIWIZUJ</button>`
           : `<button class="btn btn-green btn-small" onclick="event.stopPropagation(); setStatus(${m.id}, 'available')">PRZYWRÓĆ</button><button class="btn btn-red btn-small" onclick="event.stopPropagation(); deleteMachine(${m.id})">USUŃ</button>`}
@@ -507,9 +505,8 @@ header('Pragma: no-cache');
       $('filePreview').classList.toggle('hidden', files.length === 0)
       $('filePreview').innerHTML = files.map((file, index) => `<div class="file-pill">${index + 1}. ${escapeHtml(file.name)}</div>`).join('')
     }
-    $('tableMode').onclick = () => { state.mode = 'table'; render() }
-    $('cardMode').onclick = () => { state.mode = 'cards'; render() }
     $('search').oninput = () => { state.search = $('search').value; render() }
+    window.addEventListener('resize', () => render())
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); if (!$('modal').classList.contains('hidden') && state.lightboxImages.length) { if (event.key === 'ArrowRight') nextPhoto(); if (event.key === 'ArrowLeft') prevPhoto() } })
     init()
   </script>
