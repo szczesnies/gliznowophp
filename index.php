@@ -13,7 +13,7 @@ header('Pragma: no-cache');
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Maszyny Gliznowo</title>
-  <link rel="stylesheet" href="/style.css?v=20260516-7">
+  <link rel="stylesheet" href="/style.css?v=20260516-8">
 </head>
 <body style="background:#0f0f0f;color:#fafafa;margin:0">
   <div id="loginView" class="login hidden">
@@ -650,6 +650,12 @@ header('Pragma: no-cache');
     function escapeAttr(v){ return escapeHtml(v).replace(/"/g, '&quot;') }
 
     $('loginBtn').onclick = login
+    ;[$('loginEmail'), $('loginPassword')].forEach((field) => field.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        login()
+      }
+    }))
     $('togglePassword').onclick = () => { const p = $('loginPassword'); p.type = p.type === 'password' ? 'text' : 'password'; $('togglePassword').textContent = p.type === 'password' ? 'POKAŻ' : 'UKRYJ' }
     $('logoutBtn').onclick = logout
     $('activeTab').onclick = () => { state.view = 'available'; loadMachines() }
